@@ -62,7 +62,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true });
     try {
       const { data: res } = await api.get('/auth/me');
-      set({ user: res.data, token, isAuthenticated: true, isLoading: false });
+      set({ user: res.data.user, token, isAuthenticated: true, isLoading: false });
     } catch {
       localStorage.removeItem('edo_token');
       set({ user: null, token: null, isAuthenticated: false, isLoading: false });

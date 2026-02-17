@@ -31,7 +31,7 @@ export const useExperimentStore = create<ExperimentState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const { data: res } = await api.get('/experiments');
-      set({ experiments: res.data, isLoading: false });
+      set({ experiments: res.data?.experiments ?? res.data ?? [], isLoading: false });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to fetch experiments';
       set({ error: message, isLoading: false });
@@ -42,7 +42,7 @@ export const useExperimentStore = create<ExperimentState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const { data: res } = await api.get(`/experiments/${id}`);
-      set({ currentExperiment: res.data, isLoading: false });
+      set({ currentExperiment: res.data?.experiment ?? res.data, isLoading: false });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to fetch experiment';
       set({ error: message, isLoading: false });
@@ -53,7 +53,7 @@ export const useExperimentStore = create<ExperimentState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const { data: res } = await api.post('/experiments', payload);
-      const newExperiment = res.data;
+      const newExperiment = res.data?.experiment ?? res.data;
       set((state) => ({
         experiments: [newExperiment, ...state.experiments],
         isLoading: false,
@@ -94,8 +94,8 @@ export const useExperimentStore = create<ExperimentState>((set, get) => ({
   fetchResults: async (experimentId) => {
     set({ isLoading: true, error: null });
     try {
-      const { data: res } = await api.get(`/results/${experimentId}`);
-      set({ currentResults: res.data, isLoading: false });
+      const { data: res } = await api.get(`/experiments/${experimentId}/result`);
+      set({ currentResults: res.data?.result ?? res.data, isLoading: false });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to fetch results';
       set({ error: message, isLoading: false });

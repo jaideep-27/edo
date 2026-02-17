@@ -20,8 +20,9 @@ export type AlgorithmId = (typeof ALGORITHMS)[number]['id'];
 
 // Experiment statuses
 export const EXPERIMENT_STATUSES = {
-  pending: { label: 'Pending', color: '#FFC857' },
-  running: { label: 'Running', color: '#66FCF1' },
+  draft: { label: 'Draft', color: '#66FCF1' },
+  queued: { label: 'Queued', color: '#FFC857' },
+  running: { label: 'Running', color: '#FF2A6D' },
   completed: { label: 'Completed', color: '#4ADE80' },
   failed: { label: 'Failed', color: '#F87171' },
 } as const;
