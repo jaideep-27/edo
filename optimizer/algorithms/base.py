@@ -1,0 +1,183 @@
+"""
+Base optimizer class.
+All scheduling algorithms must extend this and implement `run()`.
+"""
+
+import numpy as np
+from abc import ABC, abstractmethod
+
+
+class BaseOptimizer(ABC):
+    """
+    Abstract base for all optimization / scheduling algorithms.
+
+    Parameters
+    ----------
+    config : dict
+        Experiment configuration received from the Node.js backend.
+        Expected keys:
+            - algorithm        : str
+            - workloadConfig   : { taskCount, tasks[] }
+            - vmConfig         : { vmCount, vms[] }
+            - hyperparameters  : { populationSize, maxIterations, weights, ... }
+            - seed             : int
+    """
+
+    def __init__(self, config: dict):
+        self.config = config
+        self.seed = config.get("seed", 42)
+        self.rng = np.random.default_rng(self.seed)
+
+        wl = config.get("workloadConfig", {})
+        vm = config.get("vmConfig", {})
+        hp = config.get("hyperparameters", {})
+
+        self.task_count = wl.get("taskCount", 10)
+        self.tasks = wl.get("tasks", [])
+        self.vm_count = vm.get("vmCount", 3)
+        self.vms = vm.get("vms", [])
+
+        self.population_size = hp.get("populationSize", 30)
+        self.max_iterations = hp.get("maxIterations", 100)
+
+        weights = hp.get("weights", {})
+        self.w_makespan = weights.get("makespan", 0.4)
+        self.w_energy = weights.get("energy", 0.3)
+        self.w_reliability = weights.get("reliability", 0.3)
+
+        # Generate default tasks / VMs if not provided
+        if not self.tasks:
+            self.tasks = self._generate_default_tasks()
+        if not self.vms:
+            self.vms = self._generate_default_vms()
+
+    # ── Helpers ────────────────────────────────────────────
+
+    def _generate_default_tasks(self):
+        """Generate random tasks with length and fileSize."""
+        tasks = []
+        for i in range(self.task_count):
+            tasks.append({
+                "id": i,
+                "length": int(self.rng.integers(1000, 50000)),
+                "fileSize": int(self.rng.integers(100, 5000)),
+            })
+        return tasks
+
+    def _generate_default_vms(self):
+        """Generate random VMs with mips, ram, bandwidth."""
+        vms = []
+        for i in range(self.vm_count):
+            vms.append({
+                "id": i,
+                "mips": int(self.rng.choice([500, 1000, 1500, 2000, 2500])),
+                "ram": int(self.rng.choice([512, 1024, 2048, 4096])),
+                "bandwidth": int(self.rng.choice([500, 1000, 2000])),
+            })
+        return vms
+
+    # ── Fitness evaluation ─────────────────────────────────
+
+    def compute_makespan(self, schedule):
+        """
+        Compute makespan given a schedule (task→VM mapping).
+        schedule : list[int]  — schedule[i] = VM index for task i
+        """
+        vm_times = [0.0] * self.vm_count
+        for task_idx, vm_idx in enumerate(schedule):
+            task = self.tasks[task_idx]
+            vm = self.vms[vm_idx]
+            exec_time = task["length"] / vm["mips"]
+            vm_times[vm_idx] += exec_time
+        return max(vm_times)
+
+    def compute_energy(self, schedule):
+        """Estimate energy consumption (simplified model)."""
+        energy = 0.0
+        for task_idx, vm_idx in enumerate(schedule):
+            task = self.tasks[task_idx]
+            vm = self.vms[vm_idx]
+            exec_time = task["length"] / vm["mips"]
+            power = vm["mips"] * 0.001  # Simplified power model
+            energy += power * exec_time
+        return energy
+
+    def compute_reliability(self, schedule):
+        """
+        Estimate reliability as 1 - max_load_imbalance.
+        Balanced loads → higher reliability.
+        """
+        vm_loads = [0.0] * self.vm_count
+        for task_idx, vm_idx in enumerate(schedule):
+            task = self.tasks[task_idx]
+            vm = self.vms[vm_idx]
+            vm_loads[vm_idx] += task["length"] / vm["mips"]
+
+        total = sum(vm_loads) if sum(vm_loads) > 0 else 1
+        avg = total / self.vm_count
+        imbalance = max(abs(l - avg) for l in vm_loads) / avg if avg > 0 else 0
+        return max(0.0, 1.0 - imbalance)
+
+    def compute_resource_utilization(self, schedule):
+        """Average VM utilization as a fraction."""
+        vm_times = [0.0] * self.vm_count
+        for task_idx, vm_idx in enumerate(schedule):
+            task = self.tasks[task_idx]
+            vm = self.vms[vm_idx]
+            vm_times[vm_idx] += task["length"] / vm["mips"]
+
+        makespan = max(vm_times) if max(vm_times) > 0 else 1
+        utilizations = [t / makespan for t in vm_times]
+        return sum(utilizations) / self.vm_count
+
+    def fitness(self, schedule):
+        """
+        Multi-objective weighted fitness (lower is better).
+        """
+        ms = self.compute_makespan(schedule)
+        en = self.compute_energy(schedule)
+        rel = self.compute_reliability(schedule)
+
+        # Normalize: we minimize makespan & energy, maximize reliability
+        return (
+            self.w_makespan * ms
+            + self.w_energy * en
+            - self.w_reliability * rel * 100  # Scale reliability contribution
+        )
+
+    def build_result(self, best_schedule, convergence_data):
+        """
+        Build the standard result dict returned to the Node backend.
+        """
+        schedule_entries = []
+        for task_idx, vm_idx in enumerate(best_schedule):
+            schedule_entries.append({
+                "taskId": task_idx,
+                "vmId": vm_idx,
+                "startTime": 0,  # Simplified; real times computed in simulation
+                "endTime": 0,
+            })
+
+        return {
+            "makespan": round(self.compute_makespan(best_schedule), 4),
+            "energy": round(self.compute_energy(best_schedule), 4),
+            "reliability": round(self.compute_reliability(best_schedule), 4),
+            "resourceUtilization": round(
+                self.compute_resource_utilization(best_schedule), 4
+            ),
+            "convergenceData": convergence_data,
+            "paretoPoints": [],
+            "schedule": schedule_entries,
+            "logs": "",
+        }
+
+    # ── Abstract method ────────────────────────────────────
+
+    @abstractmethod
+    def run(self) -> dict:
+        """
+        Execute the algorithm and return a result dict with keys:
+            makespan, energy, reliability, resourceUtilization,
+            convergenceData, paretoPoints, schedule, logs
+        """
+        ...

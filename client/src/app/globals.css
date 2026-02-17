@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+/* ========================================
+   EDO-Cloud Scheduler — Global Theme
+   Tailwind CSS v4 — CSS-based config
+   ======================================== */
+
+@theme inline {
+  /* --- Base Colors --- */
+  --color-canvas: #0B0C10;
+  --color-panel: #1F2833;
+  --color-panel-elevated: #2A3040;
+  --color-overlay: rgba(255, 255, 255, 0.05);
+  --color-border-glass: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.15);
+
+  /* --- Text Colors --- */
+  --color-text-primary: #E8E8E8;
+  --color-text-secondary: #A0A0B0;
+  --color-text-tertiary: #6B6B80;
+
+  /* --- Accent Colors --- */
+  --color-neon-cyan: #66FCF1;
+  --color-neon-cyan-dim: rgba(102, 252, 241, 0.15);
+  --color-neon-magenta: #FF2A6D;
+  --color-neon-magenta-dim: rgba(255, 42, 109, 0.15);
+  --color-neon-amber: #FFC857;
+  --color-neon-amber-dim: rgba(255, 200, 87, 0.15);
+  --color-brand-purple: #6C3CE1;
+  --color-brand-purple-dim: rgba(108, 60, 225, 0.15);
+  --color-success: #4ADE80;
+  --color-error: #F87171;
+
+  /* --- Typography --- */
+  --font-display: 'Syncopate', sans-serif;
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* --- Animations --- */
+  --animate-glow: glow 2s ease-in-out infinite;
+  --animate-pulse-slow: pulse-slow 3s ease-in-out infinite;
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-up: slide-up 0.3s ease-out;
+  --animate-slide-in-right: slide-in-right 0.3s ease-out;
+}
+
+/* ========================================
+   Keyframes
+   ======================================== */
+
+@keyframes glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ========================================
+   Base Styles
+   ======================================== */
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========================================
+   Glassmorphism Utilities
+   ======================================== */
+
+.glass {
+  background: rgba(31, 40, 51, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-strong {
+  background: rgba(31, 40, 51, 0.8);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.glass-subtle {
+  background: rgba(31, 40, 51, 0.3);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ========================================
+   Glow Effects
+   ======================================== */
+
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(102, 252, 241, 0.15);
+}
+
+.glow-cyan-strong {
+  box-shadow: 0 0 30px rgba(102, 252, 241, 0.3);
+}
+
+.glow-magenta {
+  box-shadow: 0 0 20px rgba(255, 42, 109, 0.15);
+}
+
+.glow-purple {
+  box-shadow: 0 0 20px rgba(108, 60, 225, 0.2);
+}
+
+/* ========================================
+   Scrollbar
+   ======================================== */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ========================================
+   Selection & Focus
+   ======================================== */
+
+::selection {
+  background: rgba(102, 252, 241, 0.3);
+  color: white;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-neon-cyan);
+  outline-offset: 2px;
+}
