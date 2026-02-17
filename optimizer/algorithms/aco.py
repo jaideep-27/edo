@@ -43,6 +43,7 @@ class ACOOptimizer(BaseOptimizer):
                     probs = (
                         pheromone[t] ** alpha * heuristic[t] ** beta
                     )
+                    probs = np.maximum(probs, 1e-10)  # Ensure non-negative
                     probs /= probs.sum()
                     vm_idx = int(self.rng.choice(n_vms, p=probs))
                     schedule.append(vm_idx)

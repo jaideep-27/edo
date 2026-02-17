@@ -49,7 +49,23 @@ const compare = async (req, res, next) => {
 const exportResult = async (req, res, next) => {
   try {
     await experimentService.getById(req.user._id, req.params.id);
+    const format = req.query.format || 'json';
     const exported = await resultService.exportResult(req.params.id);
+
+    if (format === 'csv') {
+      const lines = [
+        'taskId,vmId,startTime,endTime',
+        ...(exported.schedule || []).map(
+          (s) => `${s.taskId},${s.vmId},${s.startTime || 0},${s.endTime || 0}`
+        ),
+      ];
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=result-${req.params.id}.csv`
+      );
+      return res.send(lines.join('\n'));
+    }
 
     res.setHeader('Content-Type', 'application/json');
     res.setHeader(

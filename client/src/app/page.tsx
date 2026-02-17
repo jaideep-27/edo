@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { Button } from '@/components/ui';
 import {
   Cloud,
@@ -13,6 +16,12 @@ import {
   Timer,
   BatteryCharging,
   Shield,
+  Menu,
+  X,
+  Quote,
+  GraduationCap,
+  BookOpen,
+  Beaker,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -103,7 +112,60 @@ const STATS = [
   { value: '35%', label: 'Avg Energy Reduction', icon: BatteryCharging },
 ];
 
+const TESTIMONIALS = [
+  {
+    quote:
+      'EDO consistently outperforms PSO and ACO on heterogeneous workloads, reducing makespan by up to 18% while maintaining superior reliability.',
+    author: 'A. Jaideep',
+    role: 'Lead Developer, Batch A01',
+    icon: Beaker,
+  },
+  {
+    quote:
+      'The CloudSim integration makes it possible to validate optimization results with realistic simulations — bridging the gap between theory and practice.',
+    author: 'G. Sai Teja',
+    role: 'Backend & Simulator Engineer',
+    icon: BookOpen,
+  },
+  {
+    quote:
+      'Having 8 algorithms running head-to-head on identical workloads gives us the rigorous comparison needed for academic research.',
+    author: 'B. Bhanu Prasad',
+    role: 'Algorithm Research',
+    icon: GraduationCap,
+  },
+];
+
+const USE_CASES = [
+  {
+    title: 'Academic Research',
+    description:
+      'Publish papers with reproducible scheduling experiments. Export data, generate comparison tables, and validate novel algorithms.',
+    features: ['Seed-controlled runs', 'CSV/JSON export', 'Multi-algorithm comparison'],
+    accent: 'border-neon-cyan',
+    icon: GraduationCap,
+  },
+  {
+    title: 'Cloud Lab Simulation',
+    description:
+      'Model real cloud environments with heterogeneous VMs. Test scheduling strategies before deploying to production infrastructure.',
+    features: ['CloudSim Plus backend', 'Configurable VM types', 'Realistic metrics'],
+    accent: 'border-neon-magenta',
+    icon: Cloud,
+  },
+  {
+    title: 'Algorithm Development',
+    description:
+      'Benchmark your custom scheduling algorithm against established metaheuristics on standardized workloads.',
+    features: ['Extensible architecture', 'Pareto front analysis', 'Convergence tracking'],
+    accent: 'border-neon-amber',
+    icon: Cpu,
+  },
+];
+
 export default function Home() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-canvas">
       {/* ── Navbar ──────────────────────────────────────── */}
@@ -124,8 +186,11 @@ export default function Home() {
           <a href="#algorithms" className="text-sm text-text-secondary hover:text-text-primary transition-colors">
             Algorithms
           </a>
+          <a href="#use-cases" className="text-sm text-text-secondary hover:text-text-primary transition-colors">
+            Use Cases
+          </a>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-3">
           <Link href="/signin" className="text-sm text-text-secondary hover:text-text-primary transition-colors">
             Sign In
           </Link>
@@ -133,7 +198,43 @@ export default function Home() {
             <Button size="sm">Get Started</Button>
           </Link>
         </div>
+
+        {/* Mobile hamburger */}
+        <button
+          className="md:hidden p-2 text-text-secondary hover:text-text-primary transition-colors"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
       </nav>
+
+      {/* Mobile menu overlay */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div className="absolute inset-0 bg-canvas/80 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+          <div className="absolute top-16 left-0 right-0 glass-strong border-t border-border-glass p-6 space-y-4">
+            {['Features', 'How It Works', 'Algorithms', 'Use Cases'].map((item) => (
+              <a
+                key={item}
+                href={`#${item.toLowerCase().replace(/ /g, '-')}`}
+                className="block text-sm text-text-secondary hover:text-text-primary transition-colors py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {item}
+              </a>
+            ))}
+            <div className="border-t border-border-glass pt-4 flex flex-col gap-3">
+              <Link href="/signin" className="text-sm text-text-secondary hover:text-text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                Sign In
+              </Link>
+              <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
+                <Button size="sm" className="w-full">Get Started</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Hero ────────────────────────────────────────── */}
       <section className="relative flex flex-col items-center justify-center min-h-screen pt-16 px-6 overflow-hidden">
@@ -158,7 +259,7 @@ export default function Home() {
           </div>
 
           {/* Headline */}
-          <h1 className="font-display text-5xl sm:text-6xl md:text-7xl font-extrabold uppercase tracking-wider leading-[1.1] mb-6 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold uppercase tracking-wider leading-[1.1] mb-6 animate-slide-up" style={{ animationDelay: '0.1s' }}>
             Scheduling That{' '}
             <span className="text-neon-cyan relative">
               Thinks
@@ -170,7 +271,7 @@ export default function Home() {
           </h1>
 
           {/* Subheadline */}
-          <p className="text-lg md:text-xl text-text-secondary max-w-2xl mx-auto mb-10 leading-relaxed animate-slide-up" style={{ animationDelay: '0.2s' }}>
+          <p className="text-base md:text-lg lg:text-xl text-text-secondary max-w-2xl mx-auto mb-10 leading-relaxed animate-slide-up" style={{ animationDelay: '0.2s' }}>
             Powered by the Enterprise Development Optimizer to minimize makespan,
             reduce energy, maximize reliability — and visualize every optimization step in real-time.
           </p>
@@ -210,28 +311,28 @@ export default function Home() {
       </section>
 
       {/* ── Features ────────────────────────────────────── */}
-      <section id="features" className="py-24 px-6">
+      <section id="features" className="py-20 md:py-24 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <span className="text-xs font-semibold text-neon-cyan uppercase tracking-widest">
               Capabilities
             </span>
-            <h2 className="font-heading text-3xl md:text-4xl font-bold mt-3 mb-4">
+            <h2 className="font-heading text-2xl md:text-3xl lg:text-4xl font-bold mt-3 mb-4">
               Everything You Need to Optimize
             </h2>
-            <p className="text-text-secondary max-w-2xl mx-auto">
+            <p className="text-text-secondary max-w-2xl mx-auto text-sm md:text-base">
               From experiment creation to result visualization — a complete platform
               for cloud task scheduling research.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {FEATURES.map((feature) => (
               <div
                 key={feature.title}
                 className="glass rounded-2xl p-6 hover:scale-[1.02] hover:border-neon-cyan/20 transition-all duration-300 group"
               >
-                <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl glass-subtle mb-4`}>
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl glass-subtle mb-4">
                   <feature.icon className={`h-5 w-5 ${feature.color}`} />
                 </div>
                 <h3 className="font-heading font-semibold text-lg mb-2 text-text-primary group-hover:text-neon-cyan transition-colors">
@@ -247,23 +348,23 @@ export default function Home() {
       </section>
 
       {/* ── How It Works ────────────────────────────────── */}
-      <section id="how-it-works" className="py-24 px-6 relative">
+      <section id="how-it-works" className="py-20 md:py-24 px-6 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-brand-purple/5 to-transparent" />
         <div className="relative max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <span className="text-xs font-semibold text-neon-magenta uppercase tracking-widest">
               Process
             </span>
-            <h2 className="font-heading text-3xl md:text-4xl font-bold mt-3 mb-4">
+            <h2 className="font-heading text-2xl md:text-3xl lg:text-4xl font-bold mt-3 mb-4">
               Four Steps to Optimal Scheduling
             </h2>
-            <p className="text-text-secondary max-w-2xl mx-auto">
+            <p className="text-text-secondary max-w-2xl mx-auto text-sm md:text-base">
               Configure, run, analyze. Our streamlined workflow gets you from workload
               definition to optimized results in minutes.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {STEPS.map((step, i) => (
               <div key={step.step} className="relative">
                 <div className="glass rounded-2xl p-6 h-full">
@@ -277,7 +378,6 @@ export default function Home() {
                     {step.description}
                   </p>
                 </div>
-                {/* Arrow connector */}
                 {i < STEPS.length - 1 && (
                   <div className="hidden lg:flex absolute top-1/2 -right-3 -translate-y-1/2 z-10">
                     <ChevronRight className="h-5 w-5 text-neon-cyan/30" />
@@ -290,22 +390,22 @@ export default function Home() {
       </section>
 
       {/* ── Algorithm Showcase ──────────────────────────── */}
-      <section id="algorithms" className="py-24 px-6">
+      <section id="algorithms" className="py-20 md:py-24 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <span className="text-xs font-semibold text-neon-amber uppercase tracking-widest">
               Algorithms
             </span>
-            <h2 className="font-heading text-3xl md:text-4xl font-bold mt-3 mb-4">
+            <h2 className="font-heading text-2xl md:text-3xl lg:text-4xl font-bold mt-3 mb-4">
               Battle-Tested Optimization Algorithms
             </h2>
-            <p className="text-text-secondary max-w-2xl mx-auto">
+            <p className="text-text-secondary max-w-2xl mx-auto text-sm md:text-base">
               5 metaheuristic algorithms plus 3 baseline schedulers — run them head-to-head
               on identical workloads to prove EDO&apos;s superiority.
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             {ALGORITHMS.map((algo) => (
               <div
                 key={algo.name}
@@ -322,12 +422,96 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Baseline row */}
           <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
             {['Round Robin', 'Min-Min', 'Max-Min'].map((name) => (
               <div key={name} className="glass rounded-full px-4 py-2">
                 <span className="text-xs text-text-secondary font-medium">{name}</span>
                 <span className="text-xs text-text-tertiary ml-2">Baseline</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Testimonials ────────────────────────────────── */}
+      <section className="py-20 md:py-24 px-6 relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-neon-cyan/3 to-transparent" />
+        <div className="relative max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <span className="text-xs font-semibold text-neon-cyan uppercase tracking-widest">
+              From the Team
+            </span>
+            <h2 className="font-heading text-2xl md:text-3xl lg:text-4xl font-bold mt-3 mb-4">
+              Research Insights
+            </h2>
+            <p className="text-text-secondary max-w-2xl mx-auto text-sm md:text-base">
+              What our team discovered while building and benchmarking the EDO algorithm.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {TESTIMONIALS.map((t) => (
+              <div
+                key={t.author}
+                className="glass rounded-2xl p-6 hover:border-neon-cyan/20 transition-all duration-300 flex flex-col"
+              >
+                <Quote className="h-6 w-6 text-neon-cyan/30 mb-4 flex-shrink-0" />
+                <p className="text-sm text-text-secondary leading-relaxed mb-6 flex-1">
+                  &ldquo;{t.quote}&rdquo;
+                </p>
+                <div className="flex items-center gap-3 pt-4 border-t border-border-glass">
+                  <div className="w-9 h-9 rounded-full glass-subtle flex items-center justify-center flex-shrink-0">
+                    <t.icon className="h-4 w-4 text-neon-cyan" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-text-primary">{t.author}</p>
+                    <p className="text-xs text-text-tertiary">{t.role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Use Cases ───────────────────────────────────── */}
+      <section id="use-cases" className="py-20 md:py-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <span className="text-xs font-semibold text-neon-magenta uppercase tracking-widest">
+              Use Cases
+            </span>
+            <h2 className="font-heading text-2xl md:text-3xl lg:text-4xl font-bold mt-3 mb-4">
+              Built for Researchers & Engineers
+            </h2>
+            <p className="text-text-secondary max-w-2xl mx-auto text-sm md:text-base">
+              Whether you&apos;re publishing a paper, testing cloud strategies, or benchmarking algorithms.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {USE_CASES.map((uc) => (
+              <div
+                key={uc.title}
+                className={`glass rounded-2xl p-6 border-t-2 ${uc.accent} hover:scale-[1.02] transition-all duration-300`}
+              >
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl glass-subtle mb-4">
+                  <uc.icon className="h-5 w-5 text-text-primary" />
+                </div>
+                <h3 className="font-heading font-semibold text-lg mb-2 text-text-primary">
+                  {uc.title}
+                </h3>
+                <p className="text-sm text-text-secondary leading-relaxed mb-4">
+                  {uc.description}
+                </p>
+                <ul className="space-y-2">
+                  {uc.features.map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-xs text-text-tertiary">
+                      <div className="w-1 h-1 rounded-full bg-neon-cyan flex-shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
               </div>
             ))}
           </div>
@@ -353,17 +537,16 @@ export default function Home() {
       </section>
 
       {/* ── CTA ─────────────────────────────────────────── */}
-      <section className="py-24 px-6">
+      <section className="py-20 md:py-24 px-6">
         <div className="max-w-3xl mx-auto text-center">
-          <div className="glass-strong rounded-3xl p-12 relative overflow-hidden">
-            {/* Background glow */}
+          <div className="glass-strong rounded-3xl p-8 md:p-12 relative overflow-hidden">
             <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[400px] h-[200px] bg-neon-cyan/10 rounded-full blur-[80px]" />
 
             <div className="relative z-10">
-              <h2 className="font-heading text-3xl md:text-4xl font-bold mb-4">
+              <h2 className="font-heading text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
                 Ready to Optimize?
               </h2>
-              <p className="text-text-secondary max-w-lg mx-auto mb-8">
+              <p className="text-text-secondary max-w-lg mx-auto mb-8 text-sm md:text-base">
                 Create your first experiment in under a minute. Compare algorithms,
                 visualize results, and discover the optimal schedule for your cloud workloads.
               </p>
@@ -381,8 +564,7 @@ export default function Home() {
       {/* ── Footer ──────────────────────────────────────── */}
       <footer className="border-t border-border-glass py-12 px-6">
         <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-8 mb-8">
-            {/* Brand */}
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Cloud className="h-5 w-5 text-neon-cyan" />
@@ -394,17 +576,16 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Links */}
             <div>
               <h4 className="font-heading font-semibold text-sm text-text-primary mb-3">Platform</h4>
               <div className="space-y-2">
                 <a href="#features" className="block text-sm text-text-tertiary hover:text-text-secondary transition-colors">Features</a>
                 <a href="#how-it-works" className="block text-sm text-text-tertiary hover:text-text-secondary transition-colors">How It Works</a>
                 <a href="#algorithms" className="block text-sm text-text-tertiary hover:text-text-secondary transition-colors">Algorithms</a>
+                <a href="#use-cases" className="block text-sm text-text-tertiary hover:text-text-secondary transition-colors">Use Cases</a>
               </div>
             </div>
 
-            {/* Team */}
             <div>
               <h4 className="font-heading font-semibold text-sm text-text-primary mb-3">Team A01</h4>
               <div className="space-y-1 text-sm text-text-tertiary">

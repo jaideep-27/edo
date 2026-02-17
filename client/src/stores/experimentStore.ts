@@ -15,6 +15,7 @@ interface ExperimentState {
   createExperiment: (payload: CreateExperimentPayload) => Promise<Experiment>;
   deleteExperiment: (id: string) => Promise<void>;
   runExperiment: (id: string) => Promise<void>;
+  cloneExperiment: (id: string) => Promise<Experiment>;
   fetchResults: (experimentId: string) => Promise<void>;
   clearCurrent: () => void;
   setError: (error: string | null) => void;
@@ -103,6 +104,21 @@ export const useExperimentStore = create<ExperimentState>((set, get) => ({
   },
 
   clearCurrent: () => set({ currentExperiment: null, currentResults: null }),
+
+  cloneExperiment: async (id) => {
+    try {
+      const { data: res } = await api.post(`/experiments/${id}/clone`);
+      const cloned = res.data?.experiment ?? res.data;
+      set((state) => ({
+        experiments: [cloned, ...state.experiments],
+      }));
+      return cloned;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to clone experiment';
+      set({ error: message });
+      throw error;
+    }
+  },
 
   setError: (error) => set({ error }),
 }));

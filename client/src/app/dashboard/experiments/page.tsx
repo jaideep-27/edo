@@ -11,6 +11,7 @@ import {
   Trash2,
   Play,
   BarChart3,
+  Copy,
 } from 'lucide-react';
 import { Button, Input, Badge } from '@/components/ui';
 import { useExperimentStore } from '@/stores/experimentStore';
@@ -30,6 +31,7 @@ export default function ExperimentsPage() {
     fetchExperiments,
     deleteExperiment,
     runExperiment,
+    cloneExperiment,
     isLoading,
   } = useExperimentStore();
   const [hasFetched, setHasFetched] = useState(false);
@@ -59,6 +61,10 @@ export default function ExperimentsPage() {
   const handleRun = async (id: string) => {
     await runExperiment(id);
     fetchExperiments();
+  };
+
+  const handleClone = async (id: string) => {
+    await cloneExperiment(id);
   };
 
   return (
@@ -181,12 +187,21 @@ export default function ExperimentsPage() {
                   )}
 
                   {exp.status === 'completed' && (
-                    <Link href={`/dashboard/experiments`}>
+                    <Link href={`/dashboard/experiments/${exp._id}`}>
                       <Button variant="ghost" size="sm">
                         <BarChart3 className="h-3.5 w-3.5" />
                       </Button>
                     </Link>
                   )}
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleClone(exp._id)}
+                    title="Clone experiment"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
 
                   <Button
                     variant="ghost"

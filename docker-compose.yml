@@ -1,0 +1,50 @@
+version: '3.9'
+
+services:
+  # ── MongoDB ──────────────────────────────────────────
+  mongo:
+    image: mongo:7
+    container_name: edo-mongo
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: edo
+
+  # ── Backend API ──────────────────────────────────────
+  server:
+    build: ./server
+    container_name: edo-server
+    restart: unless-stopped
+    ports:
+      - '5001:5001'
+    depends_on:
+      - mongo
+    environment:
+      PORT: 5001
+      MONGO_URI: mongodb://mongo:27017/edo
+      JWT_SECRET: ${JWT_SECRET:-9f3Kx7QvL2mP8cZr5YwE0Jt4HnA6uB1DqSgR9oV3FhXUeT2iCk7lWbN8yMZpQa}
+      JWT_EXPIRES_IN: 36500d
+      PYTHON_PATH: python3
+      DEFAULT_SEED: 42
+      NODE_ENV: production
+    volumes:
+      - ./optimizer:/opt/optimizer:ro
+      - ./simulator/target:/opt/simulator/target:ro
+
+  # ── Frontend ─────────────────────────────────────────
+  client:
+    build: ./client
+    container_name: edo-client
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    depends_on:
+      - server
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:5001/api
+
+volumes:
+  mongo_data:

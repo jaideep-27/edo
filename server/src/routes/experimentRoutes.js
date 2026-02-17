@@ -3,6 +3,7 @@ const { body, param } = require('express-validator');
 const validate = require('../middleware/validate');
 const auth = require('../middleware/auth');
 const experimentController = require('../controllers/experimentController');
+const uploadController = require('../controllers/uploadController');
 
 const router = Router();
 
@@ -62,6 +63,13 @@ router.post(
   [param('id').isMongoId().withMessage('Invalid experiment ID')],
   validate,
   experimentController.run
+);
+
+router.post(
+  '/:id/clone',
+  [param('id').isMongoId().withMessage('Invalid experiment ID')],
+  validate,
+  uploadController.cloneExperiment
 );
 
 module.exports = router;

@@ -13,6 +13,6 @@ module.exports = {
   pythonPath: process.env.PYTHON_PATH || 'python3',
   cloudsimJarPath:
     process.env.CLOUDSIM_JAR_PATH ||
-    path.resolve(__dirname, '../../../simulator/cloudsim.jar'),
+    path.resolve(__dirname, '../../../simulator/target/simulator.jar'),
   defaultSeed: parseInt(process.env.DEFAULT_SEED, 10) || 42,
 };

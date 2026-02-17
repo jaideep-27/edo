@@ -44,7 +44,7 @@ const experimentSchema = new mongoose.Schema(
     },
     algorithm: {
       type: String,
-      enum: ['EDO', 'PSO', 'ACO', 'WOA', 'Baseline'],
+      enum: ['EDO', 'PSO', 'ACO', 'GA', 'WOA', 'ROUND_ROBIN', 'MIN_MIN', 'MAX_MIN'],
       required: [true, 'Algorithm is required'],
     },
     hyperparameters: {
@@ -59,8 +59,8 @@ const experimentSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'running', 'completed', 'failed'],
-      default: 'pending',
+      enum: ['draft', 'queued', 'running', 'completed', 'failed'],
+      default: 'draft',
       index: true,
     },
     tags: [{ type: String, trim: true }],
