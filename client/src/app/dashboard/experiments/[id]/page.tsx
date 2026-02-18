@@ -50,8 +50,7 @@ import {
   Area,
 } from 'recharts';
 import api from '@/lib/api';
-
-/* ─── Types ──────────────────────────────────────────── */
+import { useChartTheme } from '@/hooks/useChartTheme';
 interface ConvergencePoint {
   iteration: number;
   fitness: number;
@@ -199,6 +198,7 @@ function RunningStatePanel({
   progress: SSEProgress;
 }) {
   const [now, setNow] = useState(() => Date.now());
+  const ct = useChartTheme();
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 100);
@@ -508,11 +508,11 @@ function RunningStatePanel({
                     <stop offset="100%" stopColor={algoColor} stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1F283320" />
-                <XAxis dataKey="iteration" tick={{ fill: '#A0A0B0', fontSize: 9 }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fill: '#A0A0B0', fontSize: 9 }} tickLine={false} axisLine={false} width={50} />
+                <CartesianGrid strokeDasharray="3 3" stroke={`${ct.grid}20`} />
+                <XAxis dataKey="iteration" tick={{ fill: ct.tick, fontSize: 9 }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fill: ct.tick, fontSize: 9 }} tickLine={false} axisLine={false} width={50} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#1F2833', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 11 }}
+                  contentStyle={{ ...ct.tooltipStyle, fontSize: 11 }}
                   formatter={(value: number | undefined) => [value != null ? value.toFixed(4) : '—', 'Fitness']}
                   labelFormatter={(label) => `Iteration ${label}`}
                 />
@@ -558,6 +558,9 @@ export default function ExperimentDetailPage() {
   const [result, setResult] = useState<ResultData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'convergence' | 'schedule' | 'pareto'>('overview');
+
+  // Chart theme colours (responds to dark/light toggle)
+  const ct = useChartTheme();
 
   // SSE real-time progress — must be called unconditionally before any returns
   const sseProgress = useExperimentSSE(experiment?._id, experiment?.status);
@@ -875,11 +878,11 @@ export default function ExperimentDetailPage() {
                         { metric: 'Utilization', value: result.resourceUtilization, fullMark: 100 },
                       ]}
                     >
-                      <PolarGrid stroke="#1F2833" />
-                      <PolarAngleAxis dataKey="metric" tick={{ fill: '#A0A0B0', fontSize: 12 }} />
+                      <PolarGrid stroke={ct.polarGrid} />
+                      <PolarAngleAxis dataKey="metric" tick={{ fill: ct.tick, fontSize: 12 }} />
                       <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: '#555', fontSize: 10 }} />
                       <Radar name="Score" dataKey="value" stroke="#66FCF1" fill="#66FCF1" fillOpacity={0.2} />
-                      <Legend wrapperStyle={{ fontSize: 12, color: '#A0A0B0' }} />
+                      <Legend wrapperStyle={{ fontSize: 12, color: ct.legendColor }} />
                     </RadarChart>
                   </ResponsiveContainer>
                 </div>
@@ -898,9 +901,9 @@ export default function ExperimentDetailPage() {
                       <div className="h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={result.convergenceData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1F2833" />
-                            <XAxis dataKey="iteration" tick={{ fill: '#A0A0B0', fontSize: 11 }} label={{ value: 'Iteration', position: 'insideBottom', offset: -5, fill: '#A0A0B0', fontSize: 12 }} />
-                            <YAxis tick={{ fill: '#A0A0B0', fontSize: 11 }} label={{ value: 'Fitness', angle: -90, position: 'insideLeft', fill: '#A0A0B0', fontSize: 12 }} />
+                            <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+                            <XAxis dataKey="iteration" tick={{ fill: ct.tick, fontSize: 11 }} label={{ value: 'Iteration', position: 'insideBottom', offset: -5, fill: ct.tick, fontSize: 12 }} />
+                            <YAxis tick={{ fill: ct.tick, fontSize: 11 }} label={{ value: 'Fitness', angle: -90, position: 'insideLeft', fill: ct.tick, fontSize: 12 }} />
                             <Tooltip content={<ChartTooltip />} />
                             <Line type="monotone" dataKey="fitness" stroke="#66FCF1" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: '#66FCF1' }} />
                           </LineChart>
@@ -914,12 +917,12 @@ export default function ExperimentDetailPage() {
                         <div className="h-[300px]">
                           <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={result.convergenceData}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#1F2833" />
-                              <XAxis dataKey="iteration" tick={{ fill: '#A0A0B0', fontSize: 11 }} />
-                              <YAxis yAxisId="left" tick={{ fill: '#A0A0B0', fontSize: 11 }} label={{ value: 'Makespan (ms)', angle: -90, position: 'insideLeft', fill: '#FF2A6D', fontSize: 11 }} />
-                              <YAxis yAxisId="right" orientation="right" tick={{ fill: '#A0A0B0', fontSize: 11 }} label={{ value: 'Energy (J)', angle: 90, position: 'insideRight', fill: '#FFC857', fontSize: 11 }} />
+                              <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+                              <XAxis dataKey="iteration" tick={{ fill: ct.tick, fontSize: 11 }} />
+                              <YAxis yAxisId="left" tick={{ fill: ct.tick, fontSize: 11 }} label={{ value: 'Makespan (ms)', angle: -90, position: 'insideLeft', fill: '#FF2A6D', fontSize: 11 }} />
+                              <YAxis yAxisId="right" orientation="right" tick={{ fill: ct.tick, fontSize: 11 }} label={{ value: 'Energy (J)', angle: 90, position: 'insideRight', fill: '#FFC857', fontSize: 11 }} />
                               <Tooltip content={<ChartTooltip />} />
-                              <Legend wrapperStyle={{ fontSize: 12, color: '#A0A0B0' }} />
+                              <Legend wrapperStyle={{ fontSize: 12, color: ct.legendColor }} />
                               <Line yAxisId="left" type="monotone" dataKey="makespan" name="Makespan" stroke="#FF2A6D" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: '#FF2A6D' }} />
                               <Line yAxisId="right" type="monotone" dataKey="energy" name="Energy" stroke="#FFC857" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: '#FFC857' }} />
                             </LineChart>
@@ -959,16 +962,11 @@ export default function ExperimentDetailPage() {
                                 .map(([vm, count]) => ({ vm: `VM ${vm}`, count }));
                             })()}
                           >
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1F2833" />
-                            <XAxis dataKey="vm" tick={{ fill: '#A0A0B0', fontSize: 10 }} />
-                            <YAxis tick={{ fill: '#A0A0B0', fontSize: 10 }} />
+                            <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+                            <XAxis dataKey="vm" tick={{ fill: ct.tick, fontSize: 10 }} />
+                            <YAxis tick={{ fill: ct.tick, fontSize: 10 }} />
                             <Tooltip
-                              contentStyle={{
-                                backgroundColor: '#1F2833',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                borderRadius: 8,
-                                fontSize: 12,
-                              }}
+                              contentStyle={ct.tooltipStyle}
                             />
                             <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                               {(() => {
@@ -1001,29 +999,24 @@ export default function ExperimentDetailPage() {
                   <div className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <ScatterChart>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1F2833" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
                         <XAxis
                           type="number"
                           dataKey="makespan"
                           name="Makespan"
-                          tick={{ fill: '#A0A0B0', fontSize: 11 }}
-                          label={{ value: 'Makespan (ms)', position: 'insideBottom', offset: -5, fill: '#A0A0B0', fontSize: 12 }}
+                          tick={{ fill: ct.tick, fontSize: 11 }}
+                          label={{ value: 'Makespan (ms)', position: 'insideBottom', offset: -5, fill: ct.tick, fontSize: 12 }}
                         />
                         <YAxis
                           type="number"
                           dataKey="energy"
                           name="Energy"
-                          tick={{ fill: '#A0A0B0', fontSize: 11 }}
-                          label={{ value: 'Energy (J)', angle: -90, position: 'insideLeft', fill: '#A0A0B0', fontSize: 12 }}
+                          tick={{ fill: ct.tick, fontSize: 11 }}
+                          label={{ value: 'Energy (J)', angle: -90, position: 'insideLeft', fill: ct.tick, fontSize: 12 }}
                         />
                         <Tooltip
                           cursor={{ strokeDasharray: '3 3' }}
-                          contentStyle={{
-                            backgroundColor: '#1F2833',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            borderRadius: 8,
-                            fontSize: 12,
-                          }}
+                          contentStyle={ct.tooltipStyle}
                           formatter={(value: number | undefined) => value != null ? value.toFixed(3) : '—'}
                         />
                         <Scatter name="Pareto Points" data={result.paretoPoints} fill="#FF2A6D">

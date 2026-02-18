@@ -1,25 +1,27 @@
 @import "tailwindcss";
 
 /* ========================================
-   EDO-Cloud Scheduler — Global Theme
+   EDO-Cloud Scheduler — Themed Global CSS
    Tailwind CSS v4 — CSS-based config
+   Dark + Light theme via .dark / .light on <html>
    ======================================== */
 
+/* ─── Tailwind Theme Tokens (defaults = dark) ─── */
 @theme inline {
-  /* --- Base Colors --- */
-  --color-canvas: #0B0C10;
-  --color-panel: #1F2833;
-  --color-panel-elevated: #2A3040;
-  --color-overlay: rgba(255, 255, 255, 0.05);
-  --color-border-glass: rgba(255, 255, 255, 0.08);
-  --color-border-strong: rgba(255, 255, 255, 0.15);
+  /* --- Base Colors (resolved via CSS variables) --- */
+  --color-canvas: var(--t-canvas);
+  --color-panel: var(--t-panel);
+  --color-panel-elevated: var(--t-panel-elevated);
+  --color-overlay: var(--t-overlay);
+  --color-border-glass: var(--t-border-glass);
+  --color-border-strong: var(--t-border-strong);
 
   /* --- Text Colors --- */
-  --color-text-primary: #E8E8E8;
-  --color-text-secondary: #A0A0B0;
-  --color-text-tertiary: #6B6B80;
+  --color-text-primary: var(--t-text-primary);
+  --color-text-secondary: var(--t-text-secondary);
+  --color-text-tertiary: var(--t-text-tertiary);
 
-  /* --- Accent Colors --- */
+  /* --- Accent Colors (same in both themes) --- */
   --color-neon-cyan: #66FCF1;
   --color-neon-cyan-dim: rgba(102, 252, 241, 0.15);
   --color-neon-magenta: #FF2A6D;
@@ -43,6 +45,93 @@
   --animate-fade-in: fade-in 0.3s ease-out;
   --animate-slide-up: slide-up 0.3s ease-out;
   --animate-slide-in-right: slide-in-right 0.3s ease-out;
+}
+
+/* ========================================
+   Dark Theme (default)
+   ======================================== */
+
+:root,
+.dark {
+  --t-canvas: #0B0C10;
+  --t-panel: #1F2833;
+  --t-panel-elevated: #2A3040;
+  --t-overlay: rgba(255, 255, 255, 0.05);
+  --t-border-glass: rgba(255, 255, 255, 0.08);
+  --t-border-strong: rgba(255, 255, 255, 0.15);
+  --t-text-primary: #E8E8E8;
+  --t-text-secondary: #A0A0B0;
+  --t-text-tertiary: #6B6B80;
+
+  /* Glass backgrounds */
+  --t-glass-bg: rgba(31, 40, 51, 0.6);
+  --t-glass-strong-bg: rgba(31, 40, 51, 0.8);
+  --t-glass-subtle-bg: rgba(31, 40, 51, 0.3);
+  --t-glass-border: rgba(255, 255, 255, 0.08);
+  --t-glass-strong-border: rgba(255, 255, 255, 0.15);
+
+  /* Chart helpers */
+  --t-chart-grid: #1F2833;
+  --t-chart-tooltip-bg: #1F2833;
+  --t-chart-tooltip-border: rgba(255, 255, 255, 0.1);
+  --t-chart-tick: #A0A0B0;
+
+  /* Scrollbar */
+  --t-scrollbar-thumb: rgba(255, 255, 255, 0.1);
+  --t-scrollbar-thumb-hover: rgba(255, 255, 255, 0.2);
+
+  /* Selection */
+  --t-selection-bg: rgba(102, 252, 241, 0.3);
+  --t-selection-color: white;
+
+  /* Glow effects */
+  --t-glow-cyan: rgba(102, 252, 241, 0.15);
+  --t-glow-cyan-strong: rgba(102, 252, 241, 0.3);
+  --t-glow-magenta: rgba(255, 42, 109, 0.15);
+  --t-glow-purple: rgba(108, 60, 225, 0.2);
+}
+
+/* ========================================
+   Light Theme
+   ======================================== */
+
+.light {
+  --t-canvas: #F4F6F9;
+  --t-panel: #FFFFFF;
+  --t-panel-elevated: #F0F2F5;
+  --t-overlay: rgba(0, 0, 0, 0.03);
+  --t-border-glass: rgba(0, 0, 0, 0.08);
+  --t-border-strong: rgba(0, 0, 0, 0.15);
+  --t-text-primary: #1A1A2E;
+  --t-text-secondary: #555570;
+  --t-text-tertiary: #8888A0;
+
+  /* Glass backgrounds — light frosted glass */
+  --t-glass-bg: rgba(255, 255, 255, 0.7);
+  --t-glass-strong-bg: rgba(255, 255, 255, 0.85);
+  --t-glass-subtle-bg: rgba(255, 255, 255, 0.45);
+  --t-glass-border: rgba(0, 0, 0, 0.06);
+  --t-glass-strong-border: rgba(0, 0, 0, 0.1);
+
+  /* Chart helpers */
+  --t-chart-grid: #E5E7EB;
+  --t-chart-tooltip-bg: #FFFFFF;
+  --t-chart-tooltip-border: rgba(0, 0, 0, 0.08);
+  --t-chart-tick: #555570;
+
+  /* Scrollbar */
+  --t-scrollbar-thumb: rgba(0, 0, 0, 0.12);
+  --t-scrollbar-thumb-hover: rgba(0, 0, 0, 0.22);
+
+  /* Selection */
+  --t-selection-bg: rgba(108, 60, 225, 0.2);
+  --t-selection-color: #1A1A2E;
+
+  /* Glow effects — softer shadows for light */
+  --t-glow-cyan: rgba(14, 154, 142, 0.15);
+  --t-glow-cyan-strong: rgba(14, 154, 142, 0.25);
+  --t-glow-magenta: rgba(214, 30, 92, 0.1);
+  --t-glow-purple: rgba(90, 44, 192, 0.1);
 }
 
 /* ========================================
@@ -78,16 +167,13 @@
    Base Styles
    ======================================== */
 
-html {
-  color-scheme: dark;
-}
-
 body {
-  background-color: var(--color-canvas);
-  color: var(--color-text-primary);
+  background-color: var(--t-canvas);
+  color: var(--t-text-primary);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.25s ease, color 0.2s ease;
 }
 
 /* ========================================
@@ -95,78 +181,108 @@ body {
    ======================================== */
 
 .glass {
-  background: rgba(31, 40, 51, 0.6);
+  background: var(--t-glass-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--t-glass-border);
+  transition: background 0.25s ease, border-color 0.2s ease, box-shadow 0.25s ease;
 }
 
 .glass-strong {
-  background: rgba(31, 40, 51, 0.8);
+  background: var(--t-glass-strong-bg);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--t-glass-strong-border);
+  transition: background 0.25s ease, border-color 0.2s ease, box-shadow 0.25s ease;
 }
 
 .glass-subtle {
-  background: rgba(31, 40, 51, 0.3);
+  background: var(--t-glass-subtle-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--t-glass-border);
+  transition: background 0.25s ease, border-color 0.2s ease, box-shadow 0.25s ease;
+}
+
+/* Light theme: add subtle shadows for depth */
+.light .glass {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.light .glass-strong {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.light .glass-subtle {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 /* ========================================
    Glow Effects
    ======================================== */
 
-.glow-cyan {
-  box-shadow: 0 0 20px rgba(102, 252, 241, 0.15);
-}
+.glow-cyan { box-shadow: 0 0 20px var(--t-glow-cyan); }
+.glow-cyan-strong { box-shadow: 0 0 30px var(--t-glow-cyan-strong); }
+.glow-magenta { box-shadow: 0 0 20px var(--t-glow-magenta); }
+.glow-purple { box-shadow: 0 0 20px var(--t-glow-purple); }
 
-.glow-cyan-strong {
-  box-shadow: 0 0 30px rgba(102, 252, 241, 0.3);
-}
+/* ========================================
+   Light Theme — Neon Color Readability Overrides
+   ======================================== */
 
-.glow-magenta {
-  box-shadow: 0 0 20px rgba(255, 42, 109, 0.15);
-}
+.light .text-neon-cyan { color: #0E9A8E !important; }
+.light .text-neon-magenta { color: #D61E5C !important; }
+.light .text-neon-amber { color: #B8860B !important; }
+.light .text-brand-purple { color: #5A2CC0 !important; }
+.light .text-success { color: #16A34A !important; }
 
-.glow-purple {
-  box-shadow: 0 0 20px rgba(108, 60, 225, 0.2);
-}
+/* Borders */
+.light .border-neon-cyan { border-color: #0E9A8E !important; }
+
+/* Focus ring */
+.light *:focus-visible { outline-color: #0E9A8E; }
+
+/* Button primary */
+.light .bg-neon-cyan { background-color: #0EA89D !important; }
+.light .hover\:bg-neon-cyan\/90:hover { background-color: #0C968C !important; }
+
+/* Canvas text on buttons (keep white) */
+.light .text-canvas { color: #FFFFFF !important; }
+
+/* Accent dims for light */
+.light .bg-neon-cyan-dim { background-color: rgba(14, 154, 142, 0.1) !important; }
+.light .bg-neon-magenta-dim { background-color: rgba(214, 30, 92, 0.08) !important; }
+.light .bg-neon-amber-dim { background-color: rgba(184, 134, 11, 0.08) !important; }
+.light .bg-brand-purple-dim { background-color: rgba(90, 44, 192, 0.08) !important; }
+
+/* Range input accent */
+.light input[type="range"] { accent-color: #0EA89D; }
 
 /* ========================================
    Scrollbar
    ======================================== */
 
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--t-scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--t-scrollbar-thumb-hover); }
 
 /* ========================================
    Selection & Focus
    ======================================== */
 
 ::selection {
-  background: rgba(102, 252, 241, 0.3);
-  color: white;
+  background: var(--t-selection-bg);
+  color: var(--t-selection-color);
 }
 
 *:focus-visible {
   outline: 2px solid var(--color-neon-cyan);
   outline-offset: 2px;
+}
+
+/* ========================================
+   Theme transition on root
+   ======================================== */
+
+html {
+  transition: background-color 0.25s ease;
 }

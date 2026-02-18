@@ -1,9 +1,10 @@
 'use client';
 
-import { Cloud, LogOut, Menu } from 'lucide-react';
+import { Cloud, LogOut, Menu, Sun, Moon } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
+import { useTheme } from '@/components/theme-provider';
 
 interface DashboardNavbarProps {
   onMenuToggle?: () => void;
@@ -12,6 +13,7 @@ interface DashboardNavbarProps {
 export function DashboardNavbar({ onMenuToggle }: DashboardNavbarProps) {
   const { user, logout } = useAuthStore();
   const router = useRouter();
+  const { theme, toggleTheme } = useTheme();
 
   const handleLogout = () => {
     logout();
@@ -41,6 +43,15 @@ export function DashboardNavbar({ onMenuToggle }: DashboardNavbarProps) {
 
       {/* Right section */}
       <div className="flex items-center gap-4">
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          className="p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-overlay transition-colors"
+          aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+        >
+          {theme === 'dark' ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+        </button>
+
         {user && (
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-brand-purple flex items-center justify-center text-sm font-bold text-white">

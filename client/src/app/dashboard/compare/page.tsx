@@ -35,6 +35,7 @@ import {
   Line,
 } from 'recharts';
 import type { Experiment } from '@/types';
+import { useChartTheme } from '@/hooks/useChartTheme';
 
 interface CompareResult {
   _id: string;
@@ -56,6 +57,7 @@ export default function ComparePage() {
   const [comparing, setComparing] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
+  const ct = useChartTheme();
 
   useEffect(() => {
     if (!hasFetched) {
@@ -365,8 +367,8 @@ export default function ComparePage() {
               <div className="h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart data={radarData}>
-                    <PolarGrid stroke="#1F2833" />
-                    <PolarAngleAxis dataKey="metric" tick={{ fill: '#A0A0B0', fontSize: 11 }} />
+                    <PolarGrid stroke={ct.polarGrid} />
+                    <PolarAngleAxis dataKey="metric" tick={{ fill: ct.tick, fontSize: 11 }} />
                     <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: '#555', fontSize: 9 }} />
                     {results.map((r, i) => {
                       const exp = getExperiment(r.experimentId);
@@ -381,7 +383,7 @@ export default function ComparePage() {
                         />
                       );
                     })}
-                    <Legend wrapperStyle={{ fontSize: 11, color: '#A0A0B0' }} />
+                    <Legend wrapperStyle={{ fontSize: 11, color: ct.legendColor }} />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
@@ -393,16 +395,11 @@ export default function ComparePage() {
               <div className="h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={barData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1F2833" />
-                    <XAxis dataKey="metric" tick={{ fill: '#A0A0B0', fontSize: 11 }} />
-                    <YAxis tick={{ fill: '#A0A0B0', fontSize: 10 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+                    <XAxis dataKey="metric" tick={{ fill: ct.tick, fontSize: 11 }} />
+                    <YAxis tick={{ fill: ct.tick, fontSize: 10 }} />
                     <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#1F2833',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: 8,
-                        fontSize: 12,
-                      }}
+                      contentStyle={ct.tooltipStyle}
                     />
                     {results.map((r, i) => {
                       const exp = getExperiment(r.experimentId);
@@ -416,7 +413,7 @@ export default function ComparePage() {
                         />
                       );
                     })}
-                    <Legend wrapperStyle={{ fontSize: 11, color: '#A0A0B0' }} />
+                    <Legend wrapperStyle={{ fontSize: 11, color: ct.legendColor }} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -430,25 +427,20 @@ export default function ComparePage() {
               <div className="h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1F2833" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
                     <XAxis
                       dataKey="iteration"
                       type="number"
-                      tick={{ fill: '#A0A0B0', fontSize: 11 }}
-                      label={{ value: 'Iteration', position: 'insideBottom', offset: -5, fill: '#A0A0B0', fontSize: 12 }}
+                      tick={{ fill: ct.tick, fontSize: 11 }}
+                      label={{ value: 'Iteration', position: 'insideBottom', offset: -5, fill: ct.tick, fontSize: 12 }}
                       allowDuplicatedCategory={false}
                     />
                     <YAxis
-                      tick={{ fill: '#A0A0B0', fontSize: 11 }}
-                      label={{ value: 'Fitness', angle: -90, position: 'insideLeft', fill: '#A0A0B0', fontSize: 12 }}
+                      tick={{ fill: ct.tick, fontSize: 11 }}
+                      label={{ value: 'Fitness', angle: -90, position: 'insideLeft', fill: ct.tick, fontSize: 12 }}
                     />
                     <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#1F2833',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: 8,
-                        fontSize: 12,
-                      }}
+                      contentStyle={ct.tooltipStyle}
                     />
                     {results.map((r, i) => {
                       if (!r.convergenceData?.length) return null;
@@ -466,7 +458,7 @@ export default function ComparePage() {
                         />
                       );
                     })}
-                    <Legend wrapperStyle={{ fontSize: 11, color: '#A0A0B0' }} />
+                    <Legend wrapperStyle={{ fontSize: 11, color: ct.legendColor }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>

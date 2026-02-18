@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui';
+import { useTheme } from '@/components/theme-provider';
 import {
   Cloud,
   Zap,
@@ -22,6 +23,8 @@ import {
   GraduationCap,
   BookOpen,
   Beaker,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -165,6 +168,7 @@ const USE_CASES = [
 
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -191,6 +195,13 @@ export default function Home() {
           </a>
         </div>
         <div className="hidden md:flex items-center gap-3">
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-overlay transition-colors"
+            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+          >
+            {theme === 'dark' ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+          </button>
           <Link href="/signin" className="text-sm text-text-secondary hover:text-text-primary transition-colors">
             Sign In
           </Link>
