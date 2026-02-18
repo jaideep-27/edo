@@ -3,6 +3,8 @@ Base optimizer class.
 All scheduling algorithms must extend this and implement `run()`.
 """
 
+import sys
+import json
 import numpy as np
 from abc import ABC, abstractmethod
 
@@ -50,6 +52,29 @@ class BaseOptimizer(ABC):
             self.tasks = self._generate_default_tasks()
         if not self.vms:
             self.vms = self._generate_default_vms()
+
+    # ── Progress reporting ─────────────────────────────────
+
+    def report_progress(self, iteration, max_iterations, best_fitness,
+                        makespan, energy, reliability=None, utilization=None):
+        """
+        Write a JSON progress line to stderr so the Node.js process
+        can stream it to the frontend via SSE.
+        """
+        progress = {
+            "type": "progress",
+            "iteration": iteration,
+            "maxIterations": max_iterations,
+            "fitness": round(best_fitness, 6),
+            "makespan": round(makespan, 4),
+            "energy": round(energy, 4),
+        }
+        if reliability is not None:
+            progress["reliability"] = round(reliability, 4)
+        if utilization is not None:
+            progress["utilization"] = round(utilization, 4)
+        sys.stderr.write("PROGRESS:" + json.dumps(progress) + "\n")
+        sys.stderr.flush()
 
     # ── Helpers ────────────────────────────────────────────
 

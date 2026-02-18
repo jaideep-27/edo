@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useExperimentStore } from '@/stores/experimentStore';
+import { useExperimentSSE } from '@/hooks/useExperimentSSE';
+import type { SSEProgress } from '@/hooks/useExperimentSSE';
 import { EXPERIMENT_STATUSES, ALGORITHMS } from '@/lib/constants';
 import {
   ArrowLeft,
@@ -18,6 +20,11 @@ import {
   RefreshCw,
   Loader2,
   Server,
+  TrendingDown,
+  Gauge,
+  CheckCircle2,
+  Circle,
+  Timer,
 } from 'lucide-react';
 import {
   LineChart,
@@ -38,6 +45,8 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
   Legend,
+  AreaChart,
+  Area,
 } from 'recharts';
 import api from '@/lib/api';
 
@@ -45,6 +54,8 @@ import api from '@/lib/api';
 interface ConvergencePoint {
   iteration: number;
   fitness: number;
+  makespan?: number;
+  energy?: number;
 }
 interface ParetoPoint {
   makespan: number;
@@ -166,6 +177,411 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
   );
 }
 
+/* ─── Running-state visualization panel (SSE-powered) ── */
+function RunningStatePanel({
+  status,
+  algorithm,
+  algoInfo,
+  taskCount,
+  vmCount,
+  maxIterations,
+  startedAt,
+  progress,
+}: {
+  status: string;
+  algorithm: string;
+  algoInfo?: { id: string; name: string; color: string };
+  taskCount: number;
+  vmCount: number;
+  maxIterations: number;
+  startedAt?: string;
+  progress: SSEProgress;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const startMs = startedAt ? new Date(startedAt).getTime() : now;
+  const elapsed = Math.max(0, Math.floor((now - startMs) / 1000));
+  const minutes = Math.floor(elapsed / 60);
+  const seconds = elapsed % 60;
+  const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+  const algoColor = algoInfo?.color ?? '#66FCF1';
+  const phaseName = progress.phase;
+  const percent = progress.percent;
+
+  // Pipeline phases with real statuses from SSE
+  const phases = [
+    { id: 'initializing', label: 'Initializing', icon: '⚙️' },
+    { id: 'optimizing', label: 'Optimizing', icon: '🧬' },
+    { id: 'simulating', label: 'Simulating', icon: '☁️' },
+    { id: 'saving', label: 'Saving', icon: '💾' },
+  ];
+
+  const phaseOrder = ['initializing', 'optimizing', 'simulating', 'saving', 'completed'];
+  const currentPhaseIdx = phaseOrder.indexOf(phaseName);
+
+  const algoLabel =
+    algorithm === 'EDO' ? 'Enterprise Swarm Evolving' :
+    algorithm === 'PSO' ? 'Particle Swarm Converging' :
+    algorithm === 'ACO' ? 'Ant Colony Exploring' :
+    algorithm === 'GA' ? 'Genetic Crossover & Mutation' :
+    algorithm === 'WOA' ? 'Whale Spiral Hunting' :
+    algorithm === 'ROUND_ROBIN' ? 'Round Robin Scheduling' :
+    algorithm === 'MIN_MIN' ? 'Min-Min Mapping' :
+    'Max-Min Mapping';
+
+  const hasLiveData = progress.convergenceHistory.length > 0;
+  const latestFitness = progress.fitness;
+  const latestMakespan = progress.makespan;
+  const latestEnergy = progress.energy;
+
+  // Improvement tracking (compare first vs latest convergence point)
+  const firstPoint = progress.convergenceHistory[0];
+  const fitnessImprovement = firstPoint && latestFitness > 0
+    ? ((firstPoint.fitness - latestFitness) / firstPoint.fitness * 100)
+    : 0;
+
+  return (
+    <div className="glass rounded-xl border border-neon-cyan/20 overflow-hidden">
+      {/* ── Header with pulsing gradient ── */}
+      <div
+        className="relative px-6 py-4 overflow-hidden"
+        style={{ background: `linear-gradient(135deg, ${algoColor}15 0%, transparent 60%)` }}
+      >
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            background: `linear-gradient(90deg, transparent, ${algoColor}20, transparent)`,
+            animation: 'shimmer 2s infinite',
+          }}
+        />
+        <style>{`@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }`}</style>
+
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div
+                className="w-11 h-11 rounded-xl flex items-center justify-center text-lg"
+                style={{ backgroundColor: `${algoColor}20`, color: algoColor }}
+              >
+                {status === 'queued' ? '⏳' : '🚀'}
+              </div>
+              <div
+                className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full animate-pulse"
+                style={{ backgroundColor: algoColor }}
+              />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-text-primary">
+                {status === 'queued' ? 'Queued' : algoLabel}
+              </h3>
+              <p className="text-xs text-text-tertiary mt-0.5">
+                {taskCount} tasks → {vmCount} VMs · {maxIterations} iterations
+              </p>
+            </div>
+          </div>
+
+          <div className="text-right flex items-center gap-6">
+            {/* Iteration counter */}
+            <div>
+              <p className="font-mono text-xl font-bold text-text-primary">
+                {progress.iteration + (hasLiveData ? 1 : 0)}
+                <span className="text-text-tertiary text-sm font-normal">/{maxIterations}</span>
+              </p>
+              <p className="text-[10px] text-text-tertiary uppercase tracking-wider">Iteration</p>
+            </div>
+            {/* Elapsed timer */}
+            <div>
+              <p className="font-mono text-xl font-bold" style={{ color: algoColor }}>
+                {timeStr}
+              </p>
+              <p className="text-[10px] text-text-tertiary uppercase tracking-wider">Elapsed</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Progress bar ── */}
+      <div className="px-6 py-3 border-t border-border-glass/40">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[11px] text-text-tertiary font-medium uppercase tracking-wider">
+            Progress
+          </span>
+          <span className="text-xs font-mono font-bold" style={{ color: algoColor }}>
+            {percent}%
+          </span>
+        </div>
+        <div className="h-2 rounded-full bg-panel-elevated overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-300 ease-out"
+            style={{
+              width: `${percent}%`,
+              background: `linear-gradient(90deg, ${algoColor}, ${algoColor}CC)`,
+              boxShadow: `0 0 12px ${algoColor}40`,
+            }}
+          />
+        </div>
+      </div>
+
+      {/* ── Pipeline phases ── */}
+      <div className="px-6 py-3 border-t border-border-glass/40">
+        <div className="flex items-center gap-2">
+          {phases.map((phase, i) => {
+            const isActive = phaseOrder[i] === phaseName;
+            const isComplete = i < currentPhaseIdx;
+            return (
+              <React.Fragment key={phase.id}>
+                <div className="flex items-center gap-1.5 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    {isComplete ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
+                    ) : isActive ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: algoColor }} />
+                    ) : (
+                      <Circle className="w-3.5 h-3.5 text-text-tertiary/40" />
+                    )}
+                    <span className={`text-[11px] font-medium ${
+                      isActive ? 'text-text-primary' : isComplete ? 'text-green-400' : 'text-text-tertiary/60'
+                    }`}>
+                      {phase.label}
+                    </span>
+                  </div>
+                </div>
+                {i < phases.length - 1 && (
+                  <div className={`w-6 h-px ${isComplete ? 'bg-green-400/50' : 'bg-border-glass'}`} />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Live Metrics Dashboard ── */}
+      {hasLiveData && (
+        <div className="px-6 py-4 border-t border-border-glass/40">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Fitness */}
+            <div className="rounded-lg p-3" style={{ backgroundColor: `${algoColor}08`, border: `1px solid ${algoColor}15` }}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <TrendingDown className="w-3.5 h-3.5" style={{ color: algoColor }} />
+                <span className="text-[10px] text-text-tertiary uppercase tracking-wider">Fitness</span>
+              </div>
+              <p className="font-mono text-lg font-bold text-text-primary">{latestFitness.toFixed(2)}</p>
+              {fitnessImprovement > 0 && (
+                <p className="text-[10px] text-green-400 font-mono mt-0.5">
+                  ↓ {fitnessImprovement.toFixed(1)}% improved
+                </p>
+              )}
+            </div>
+            {/* Makespan */}
+            <div className="rounded-lg p-3 bg-[#FF2A6D08] border border-[#FF2A6D15]">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Timer className="w-3.5 h-3.5 text-[#FF2A6D]" />
+                <span className="text-[10px] text-text-tertiary uppercase tracking-wider">Makespan</span>
+              </div>
+              <p className="font-mono text-lg font-bold text-text-primary">{latestMakespan.toFixed(1)}</p>
+              <p className="text-[10px] text-text-tertiary font-mono mt-0.5">ms</p>
+            </div>
+            {/* Energy */}
+            <div className="rounded-lg p-3 bg-[#FFC85708] border border-[#FFC85715]">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Zap className="w-3.5 h-3.5 text-[#FFC857]" />
+                <span className="text-[10px] text-text-tertiary uppercase tracking-wider">Energy</span>
+              </div>
+              <p className="font-mono text-lg font-bold text-text-primary">{latestEnergy.toFixed(1)}</p>
+              <p className="text-[10px] text-text-tertiary font-mono mt-0.5">J</p>
+            </div>
+            {/* Utilization */}
+            <div className="rounded-lg p-3 bg-[#6C3CE108] border border-[#6C3CE115]">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Gauge className="w-3.5 h-3.5 text-[#6C3CE1]" />
+                <span className="text-[10px] text-text-tertiary uppercase tracking-wider">Utilization</span>
+              </div>
+              <p className="font-mono text-lg font-bold text-text-primary">
+                {(progress.utilization * 100).toFixed(1)}%
+              </p>
+              <p className="text-[10px] text-text-tertiary font-mono mt-0.5">avg</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Live Convergence Chart ── */}
+      {progress.convergenceHistory.length > 1 && (
+        <div className="px-6 pb-5 pt-2 border-t border-border-glass/40">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">
+              Live Convergence
+            </h4>
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-[10px] text-text-tertiary">Streaming</span>
+            </div>
+          </div>
+          <div className="h-48 rounded-lg overflow-hidden" style={{ backgroundColor: `${algoColor}04` }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={progress.convergenceHistory} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+                <defs>
+                  <linearGradient id="liveGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={algoColor} stopOpacity={0.3} />
+                    <stop offset="100%" stopColor={algoColor} stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1F283340" />
+                <XAxis
+                  dataKey="iteration"
+                  tick={{ fill: '#A0A0B0', fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={{ stroke: '#1F283360' }}
+                />
+                <YAxis
+                  tick={{ fill: '#A0A0B0', fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={{ stroke: '#1F283360' }}
+                  width={50}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1F2833',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 8,
+                    fontSize: 11,
+                  }}
+                  formatter={(value: number | undefined) => [value != null ? value.toFixed(4) : '—', 'Fitness']}
+                  labelFormatter={(label) => `Iteration ${label}`}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="fitness"
+                  stroke={algoColor}
+                  strokeWidth={2}
+                  fill="url(#liveGradient)"
+                  dot={false}
+                  activeDot={{ r: 3, fill: algoColor }}
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Secondary live chart: Makespan & Energy */}
+          {progress.convergenceHistory.length > 2 && (
+            <div className="mt-3 h-32 rounded-lg overflow-hidden" style={{ backgroundColor: `#FF2A6D04` }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={progress.convergenceHistory} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1F283340" />
+                  <XAxis dataKey="iteration" tick={{ fill: '#A0A0B0', fontSize: 9 }} tickLine={false} />
+                  <YAxis yAxisId="left" tick={{ fill: '#A0A0B0', fontSize: 9 }} tickLine={false} width={45} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fill: '#A0A0B0', fontSize: 9 }} tickLine={false} width={45} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#1F2833',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 8,
+                      fontSize: 10,
+                    }}
+                  />
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="makespan"
+                    name="Makespan (ms)"
+                    stroke="#FF2A6D"
+                    strokeWidth={1.5}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="energy"
+                    name="Energy (J)"
+                    stroke="#FFC857"
+                    strokeWidth={1.5}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Waiting state (no data yet) ── */}
+      {!hasLiveData && (
+        <div className="px-6 pb-5 pt-2 border-t border-border-glass/40">
+          <div
+            className="relative h-24 rounded-lg overflow-hidden flex items-center justify-center"
+            style={{ backgroundColor: `${algoColor}08`, border: `1px solid ${algoColor}15` }}
+          >
+            {/* Animated particles */}
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div
+                key={i}
+                className="absolute rounded-full"
+                style={{
+                  width: 3 + (i % 3) * 2,
+                  height: 3 + (i % 3) * 2,
+                  backgroundColor: algoColor,
+                  opacity: 0.2 + (i % 4) * 0.1,
+                  left: `${10 + (i * 10) % 80}%`,
+                  top: `${25 + Math.sin(i * 1.5) * 25}%`,
+                  animation: `p-float-${i % 3} ${2 + (i % 2)}s ease-in-out infinite`,
+                  animationDelay: `${(i * 0.2) % 1.5}s`,
+                }}
+              />
+            ))}
+            <style>{`
+              @keyframes p-float-0 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(10px,-6px); } }
+              @keyframes p-float-1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-6px,8px); } }
+              @keyframes p-float-2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(8px,4px); } }
+            `}</style>
+            <div className="text-center z-10">
+              <Loader2 className="w-5 h-5 animate-spin mx-auto mb-1.5" style={{ color: algoColor }} />
+              <p className="text-xs font-medium" style={{ color: algoColor }}>
+                {status === 'queued' ? 'Waiting in queue…' : 'Connecting to optimizer…'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Status footer ── */}
+      <div className="px-6 py-3 border-t border-border-glass/40">
+        <div className="flex items-center gap-4 text-[11px]">
+          <div className="flex items-center gap-1.5">
+            <div
+              className="w-1.5 h-1.5 rounded-full animate-pulse"
+              style={{ backgroundColor: progress.connected ? '#4ADE80' : '#FFC857' }}
+            />
+            <span className="text-text-tertiary">
+              {progress.connected ? 'Live' : 'Connecting'}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Cpu className="w-3 h-3 text-text-tertiary" />
+            <span className="font-mono font-medium" style={{ color: algoColor }}>{algoInfo?.name ?? algorithm}</span>
+          </div>
+          {hasLiveData && (
+            <div className="flex items-center gap-1.5">
+              <Activity className="w-3 h-3 text-text-tertiary" />
+              <span className="text-text-secondary font-mono text-[10px]">
+                {progress.convergenceHistory.length} data points
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main page ──────────────────────────────────────── */
 export default function ExperimentDetailPage() {
   const params = useParams();
@@ -174,6 +590,7 @@ export default function ExperimentDetailPage() {
   const {
     currentExperiment: experiment,
     fetchExperiment,
+    pollExperiment,
     runExperiment,
     deleteExperiment,
     clearCurrent,
@@ -182,6 +599,9 @@ export default function ExperimentDetailPage() {
   const [result, setResult] = useState<ResultData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'convergence' | 'schedule' | 'pareto'>('overview');
+
+  // SSE real-time progress — must be called unconditionally before any returns
+  const sseProgress = useExperimentSSE(experiment?._id, experiment?.status);
 
   const polling = experiment ? ['running', 'queued'].includes(experiment.status) : false;
 
@@ -207,26 +627,35 @@ export default function ExperimentDetailPage() {
     return () => clearCurrent();
   }, [id, fetchExperiment, loadResult, clearCurrent]);
 
-  // Poll while running
+  // Poll while running — uses silent pollExperiment (no isLoading flicker)
+  const pollingRef = React.useRef(false);
+  const experimentStatus = experiment?.status;
   useEffect(() => {
-    if (!polling) return;
+    // Derive polling inside effect to avoid stale closure
+    const shouldPoll = experimentStatus === 'running' || experimentStatus === 'queued';
+    pollingRef.current = shouldPoll;
+    if (!shouldPoll) return;
+
     const interval = setInterval(async () => {
-      await fetchExperiment(id);
-      await loadResult();
+      if (!pollingRef.current) return;
+      const updated = await pollExperiment(id);
+      if (updated && (updated.status === 'completed' || updated.status === 'failed')) {
+        pollingRef.current = false;
+        if (updated.status === 'completed') {
+          await loadResult();
+        }
+      }
     }, 3000);
     return () => clearInterval(interval);
-  }, [polling, id, fetchExperiment, loadResult]);
+  }, [experimentStatus, id, pollExperiment, loadResult]);
 
-  // Load result when status becomes completed
-  const prevStatusRef = useCallback(() => {}, []);
+  // Load result when status becomes completed (also catches first render)
   useEffect(() => {
-    // Only load once when result transitions to completed
     if (experiment?.status === 'completed' && !result) {
-      // Defer to avoid sync setState in effect
       const t = setTimeout(() => loadResult(), 0);
       return () => clearTimeout(t);
     }
-  }, [experiment?.status, experiment, result, loadResult, prevStatusRef]);
+  }, [experiment?.status, result, loadResult]);
 
   const handleRun = async () => {
     await runExperiment(id);
@@ -387,14 +816,18 @@ export default function ExperimentDetailPage() {
         )}
       </div>
 
-      {/* Polling indicator */}
+      {/* ── Running-state Visualization ── */}
       {polling && (
-        <div className="glass rounded-xl p-4 flex items-center gap-3 border border-neon-cyan/20">
-          <Loader2 className="w-5 h-5 animate-spin text-neon-cyan" />
-          <p className="text-sm text-text-secondary">
-            Experiment is <span className="text-neon-cyan font-medium">{experiment.status}</span>. Polling for results every 3 seconds…
-          </p>
-        </div>
+        <RunningStatePanel
+          status={experiment.status}
+          algorithm={experiment.algorithm}
+          algoInfo={algoInfo}
+          taskCount={experiment.workloadConfig?.taskCount ?? 0}
+          vmCount={experiment.vmConfig?.vmCount ?? 0}
+          maxIterations={experiment.hyperparameters?.maxIterations ?? 100}
+          startedAt={experiment.startedAt}
+          progress={sseProgress}
+        />
       )}
 
       {/* No results yet */}
@@ -478,32 +911,44 @@ export default function ExperimentDetailPage() {
             {/* Convergence curve */}
             {activeTab === 'convergence' && (
               <div>
-                <h3 className="text-sm font-semibold text-text-secondary mb-4">Convergence Curve</h3>
+                <h3 className="text-sm font-semibold text-text-secondary mb-4">Convergence Curves</h3>
                 {result.convergenceData?.length > 0 ? (
-                  <div className="h-[400px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={result.convergenceData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1F2833" />
-                        <XAxis
-                          dataKey="iteration"
-                          tick={{ fill: '#A0A0B0', fontSize: 11 }}
-                          label={{ value: 'Iteration', position: 'insideBottom', offset: -5, fill: '#A0A0B0', fontSize: 12 }}
-                        />
-                        <YAxis
-                          tick={{ fill: '#A0A0B0', fontSize: 11 }}
-                          label={{ value: 'Fitness', angle: -90, position: 'insideLeft', fill: '#A0A0B0', fontSize: 12 }}
-                        />
-                        <Tooltip content={<ChartTooltip />} />
-                        <Line
-                          type="monotone"
-                          dataKey="fitness"
-                          stroke="#66FCF1"
-                          strokeWidth={2}
-                          dot={false}
-                          activeDot={{ r: 4, fill: '#66FCF1' }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
+                  <div className="space-y-6">
+                    {/* Fitness convergence */}
+                    <div>
+                      <p className="text-xs text-text-tertiary mb-2 uppercase tracking-wider">Fitness (Weighted Objective)</p>
+                      <div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={result.convergenceData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1F2833" />
+                            <XAxis dataKey="iteration" tick={{ fill: '#A0A0B0', fontSize: 11 }} label={{ value: 'Iteration', position: 'insideBottom', offset: -5, fill: '#A0A0B0', fontSize: 12 }} />
+                            <YAxis tick={{ fill: '#A0A0B0', fontSize: 11 }} label={{ value: 'Fitness', angle: -90, position: 'insideLeft', fill: '#A0A0B0', fontSize: 12 }} />
+                            <Tooltip content={<ChartTooltip />} />
+                            <Line type="monotone" dataKey="fitness" stroke="#66FCF1" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: '#66FCF1' }} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                    {/* Makespan & Energy convergence */}
+                    {result.convergenceData[0]?.makespan != null && (
+                      <div>
+                        <p className="text-xs text-text-tertiary mb-2 uppercase tracking-wider">Makespan &amp; Energy per Iteration</p>
+                        <div className="h-[300px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={result.convergenceData}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#1F2833" />
+                              <XAxis dataKey="iteration" tick={{ fill: '#A0A0B0', fontSize: 11 }} />
+                              <YAxis yAxisId="left" tick={{ fill: '#A0A0B0', fontSize: 11 }} label={{ value: 'Makespan (ms)', angle: -90, position: 'insideLeft', fill: '#FF2A6D', fontSize: 11 }} />
+                              <YAxis yAxisId="right" orientation="right" tick={{ fill: '#A0A0B0', fontSize: 11 }} label={{ value: 'Energy (J)', angle: 90, position: 'insideRight', fill: '#FFC857', fontSize: 11 }} />
+                              <Tooltip content={<ChartTooltip />} />
+                              <Legend wrapperStyle={{ fontSize: 12, color: '#A0A0B0' }} />
+                              <Line yAxisId="left" type="monotone" dataKey="makespan" name="Makespan" stroke="#FF2A6D" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: '#FF2A6D' }} />
+                              <Line yAxisId="right" type="monotone" dataKey="energy" name="Energy" stroke="#FFC857" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: '#FFC857' }} />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="text-text-tertiary text-sm text-center py-12">No convergence data available.</p>

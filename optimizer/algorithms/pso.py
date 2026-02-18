@@ -73,4 +73,15 @@ class PSOOptimizer(BaseOptimizer):
                 "energy": round(self.compute_energy(g_best), 4),
             })
 
+            # Stream progress to Node.js via stderr
+            self.report_progress(
+                iteration=iteration,
+                max_iterations=max_iter,
+                best_fitness=g_best_fit,
+                makespan=self.compute_makespan(g_best),
+                energy=self.compute_energy(g_best),
+                reliability=self.compute_reliability(g_best),
+                utilization=self.compute_resource_utilization(g_best),
+            )
+
         return self.build_result(g_best, convergence)

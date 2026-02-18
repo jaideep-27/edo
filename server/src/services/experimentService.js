@@ -1,4 +1,5 @@
 const Experiment = require('../models/Experiment');
+const Result = require('../models/Result');
 
 /**
  * Create a new experiment owned by the given user.
@@ -93,15 +94,21 @@ const remove = async (userId, experimentId) => {
 
 /**
  * Mark experiment as queued for running.
+ * Allows both 'draft' and 'failed' experiments to be (re-)queued.
  */
 const queue = async (userId, experimentId) => {
   const experiment = await getById(userId, experimentId);
 
-  if (experiment.status !== 'draft') {
-    const err = new Error('Only draft experiments can be queued');
+  if (experiment.status !== 'draft' && experiment.status !== 'failed') {
+    const err = new Error('Only draft or failed experiments can be queued');
     err.statusCode = 400;
     err.code = 'INVALID_STATUS';
     throw err;
+  }
+
+  // Clean up any previous results when retrying a failed experiment
+  if (experiment.status === 'failed') {
+    await Result.deleteMany({ experimentId: experiment._id });
   }
 
   experiment.status = 'queued';
@@ -111,12 +118,17 @@ const queue = async (userId, experimentId) => {
 
 /**
  * Update experiment status (used internally by optimization/simulation services).
+ * Sets startedAt when transitioning to 'running'.
  */
 const updateStatus = async (experimentId, status) => {
+  const update = { status };
+  if (status === 'running') {
+    update.startedAt = new Date();
+  }
   const experiment = await Experiment.findByIdAndUpdate(
     experimentId,
-    { status },
-    { new: true }
+    update,
+    { returnDocument: 'after' }
   );
   return experiment;
 };

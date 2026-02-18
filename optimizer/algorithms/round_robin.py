@@ -21,4 +21,14 @@ class RoundRobinScheduler(BaseOptimizer):
             "energy": round(self.compute_energy(schedule), 4),
         }]
 
+        self.report_progress(
+            iteration=0,
+            max_iterations=1,
+            best_fitness=self.fitness(schedule),
+            makespan=self.compute_makespan(schedule),
+            energy=self.compute_energy(schedule),
+            reliability=self.compute_reliability(schedule),
+            utilization=self.compute_resource_utilization(schedule),
+        )
+
         return self.build_result(schedule, convergence)

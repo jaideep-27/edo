@@ -9,19 +9,22 @@ import { useAuthStore } from '@/stores/authStore';
 
 export default function SignInPage() {
   const router = useRouter();
-  const { login, isLoading } = useAuthStore();
+  const { login } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSubmitting(true);
     try {
       await login({ email, password });
       router.push('/dashboard');
     } catch {
       setError('Invalid email or password. Please try again.');
+      setSubmitting(false);
     }
   };
 
@@ -72,7 +75,7 @@ export default function SignInPage() {
                 required
               />
 
-              <Button type="submit" className="w-full" isLoading={isLoading}>
+              <Button type="submit" className="w-full" isLoading={submitting}>
                 Sign In
               </Button>
             </form>

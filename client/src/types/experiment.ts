@@ -46,6 +46,7 @@ export interface Experiment {
   algorithm: AlgorithmId;
   hyperparameters: Hyperparameters;
   status: ExperimentStatus;
+  startedAt?: string;
   tags: string[];
   notes?: string;
   createdAt: string;

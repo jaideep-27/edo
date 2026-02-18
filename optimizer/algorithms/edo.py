@@ -82,4 +82,15 @@ class EDOOptimizer(BaseOptimizer):
                 "energy": round(self.compute_energy(global_best), 4),
             })
 
+            # Stream progress to Node.js via stderr
+            self.report_progress(
+                iteration=iteration,
+                max_iterations=max_iter,
+                best_fitness=global_best_fit,
+                makespan=self.compute_makespan(global_best),
+                energy=self.compute_energy(global_best),
+                reliability=self.compute_reliability(global_best),
+                utilization=self.compute_resource_utilization(global_best),
+            )
+
         return self.build_result(global_best, convergence)

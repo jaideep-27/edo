@@ -1,6 +1,8 @@
 export interface ConvergencePoint {
   iteration: number;
   fitness: number;
+  makespan?: number;
+  energy?: number;
 }
 
 export interface ParetoPoint {

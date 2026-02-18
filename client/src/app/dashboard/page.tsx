@@ -161,7 +161,7 @@ export default function DashboardPage() {
                 return (
                   <Link
                     key={exp._id}
-                    href={`/dashboard/experiments`}
+                    href={`/dashboard/experiments/${exp._id}`}
                     className="flex items-center justify-between glass-subtle rounded-xl p-4 hover:border-neon-cyan/20 transition-colors group"
                   >
                     <div className="flex items-center gap-3 min-w-0">

@@ -81,4 +81,15 @@ class WOAOptimizer(BaseOptimizer):
                 "energy": round(self.compute_energy(leader), 4),
             })
 
+            # Stream progress to Node.js via stderr
+            self.report_progress(
+                iteration=iteration,
+                max_iterations=max_iter,
+                best_fitness=leader_fit,
+                makespan=self.compute_makespan(leader),
+                energy=self.compute_energy(leader),
+                reliability=self.compute_reliability(leader),
+                utilization=self.compute_resource_utilization(leader),
+            )
+
         return self.build_result(leader, convergence)

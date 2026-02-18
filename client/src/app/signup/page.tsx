@@ -9,12 +9,13 @@ import { useAuthStore } from '@/stores/authStore';
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { register, isLoading } = useAuthStore();
+  const { register } = useAuthStore();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,11 +30,13 @@ export default function SignUpPage() {
       return;
     }
 
+    setSubmitting(true);
     try {
       await register({ name, email, password });
       router.push('/dashboard');
     } catch {
       setError('Registration failed. Email may already be in use.');
+      setSubmitting(false);
     }
   };
 
@@ -104,7 +107,7 @@ export default function SignUpPage() {
                 required
               />
 
-              <Button type="submit" className="w-full" isLoading={isLoading}>
+              <Button type="submit" className="w-full" isLoading={submitting}>
                 Create Account
               </Button>
             </form>

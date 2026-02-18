@@ -4,6 +4,8 @@ const convergencePointSchema = new mongoose.Schema(
   {
     iteration: { type: Number, required: true },
     fitness: { type: Number, required: true },
+    makespan: { type: Number },
+    energy: { type: Number },
   },
   { _id: false }
 );

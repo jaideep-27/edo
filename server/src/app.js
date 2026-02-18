@@ -11,6 +11,7 @@ const experimentRoutes = require('./routes/experimentRoutes');
 const resultRoutes = require('./routes/resultRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const suggestRoutes = require('./routes/suggestRoutes');
+const progressRoutes = require('./routes/progressRoutes');
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use('/api/experiments', experimentRoutes);
 app.use('/api', resultRoutes);
 app.use('/api', uploadRoutes);
 app.use('/api', suggestRoutes);
+app.use('/api', progressRoutes);
 
 // ── 404 handler ───────────────────────────────────────────
 app.use((_req, res) => {

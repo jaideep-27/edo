@@ -12,6 +12,7 @@ interface ExperimentState {
   // Actions
   fetchExperiments: () => Promise<void>;
   fetchExperiment: (id: string) => Promise<void>;
+  pollExperiment: (id: string) => Promise<Experiment | null>;
   createExperiment: (payload: CreateExperimentPayload) => Promise<Experiment>;
   deleteExperiment: (id: string) => Promise<void>;
   runExperiment: (id: string) => Promise<void>;
@@ -47,6 +48,21 @@ export const useExperimentStore = create<ExperimentState>((set, get) => ({
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to fetch experiment';
       set({ error: message, isLoading: false });
+    }
+  },
+
+  /**
+   * Silent poll — updates currentExperiment without touching isLoading.
+   * Returns the fetched experiment so callers can inspect the new status.
+   */
+  pollExperiment: async (id) => {
+    try {
+      const { data: res } = await api.get(`/experiments/${id}`);
+      const exp = res.data?.experiment ?? res.data;
+      set({ currentExperiment: exp });
+      return exp;
+    } catch {
+      return null;
     }
   },
 

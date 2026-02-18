@@ -19,14 +19,10 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 errors globally — redirect to sign in
+// Handle 401 errors globally — let auth store handle redirect logic
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('edo_token');
-      window.location.href = '/signin';
-    }
     return Promise.reject(error);
   }
 );

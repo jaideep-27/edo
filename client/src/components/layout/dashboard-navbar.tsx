@@ -44,10 +44,10 @@ export function DashboardNavbar({ onMenuToggle }: DashboardNavbarProps) {
         {user && (
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-brand-purple flex items-center justify-center text-sm font-bold text-white">
-              {user.name.charAt(0).toUpperCase()}
+              {(user.name ?? '?').charAt(0).toUpperCase()}
             </div>
             <span className="text-sm text-text-secondary hidden md:block">
-              {user.name}
+              {user.name ?? 'User'}
             </span>
           </div>
         )}

@@ -55,10 +55,13 @@ export default function ComparePage() {
   const [results, setResults] = useState<CompareResult[]>([]);
   const [comparing, setComparing] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
 
   useEffect(() => {
-    fetchExperiments();
-  }, [fetchExperiments]);
+    if (!hasFetched) {
+      fetchExperiments().finally(() => setHasFetched(true));
+    }
+  }, [fetchExperiments, hasFetched]);
 
   const completedExperiments = experiments.filter((e) => e.status === 'completed');
 

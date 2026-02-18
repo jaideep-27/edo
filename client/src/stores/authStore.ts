@@ -19,7 +19,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   token: typeof window !== 'undefined' ? localStorage.getItem('edo_token') : null,
-  isLoading: false,
+  isLoading: true,
   isAuthenticated: false,
 
   login: async (credentials) => {
@@ -56,7 +56,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   loadUser: async () => {
     const token = localStorage.getItem('edo_token');
     if (!token) {
-      set({ isAuthenticated: false });
+      set({ isAuthenticated: false, isLoading: false });
       return;
     }
     set({ isLoading: true });

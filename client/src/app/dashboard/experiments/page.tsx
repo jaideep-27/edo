@@ -12,6 +12,7 @@ import {
   Play,
   BarChart3,
   Copy,
+  RotateCcw,
 } from 'lucide-react';
 import { Button, Input, Badge } from '@/components/ui';
 import { useExperimentStore } from '@/stores/experimentStore';
@@ -98,7 +99,7 @@ export default function ExperimentsPage() {
           />
         </div>
         <div className="flex gap-2">
-          {['all', 'draft', 'running', 'completed', 'failed'].map((s) => (
+          {['all', 'draft', 'queued', 'running', 'completed', 'failed'].map((s) => (
             <button
               key={s}
               onClick={() => setFilterStatus(s)}
@@ -181,8 +182,21 @@ export default function ExperimentsPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleRun(exp._id)}
+                      title="Run experiment"
                     >
                       <Play className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+
+                  {exp.status === 'failed' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRun(exp._id)}
+                      title="Retry experiment"
+                      className="text-neon-amber hover:text-neon-amber"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
                     </Button>
                   )}
 

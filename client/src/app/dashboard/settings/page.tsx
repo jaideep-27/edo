@@ -101,9 +101,12 @@ const INITIAL_DEFAULTS: DefaultsState = {
 export default function SettingsPage() {
   const { user } = useAuthStore();
 
-  const [profileName, setProfileName] = useState(user?.name ?? '');
-  const [profileEmail] = useState(user?.email ?? '');
+  const [profileName, setProfileName] = useState('');
   const [defaults, setDefaults] = useState<DefaultsState>({ ...INITIAL_DEFAULTS });
+
+  // Derive display values: use edited state if user has typed, otherwise fall back to loaded user
+  const displayName = profileName || user?.name || '';
+  const displayEmail = user?.email || '';
 
   const resetDefaults = () => setDefaults({ ...INITIAL_DEFAULTS });
 
@@ -134,7 +137,7 @@ export default function SettingsPage() {
             <label className="block text-xs text-text-tertiary mb-1.5">Name</label>
             <input
               type="text"
-              value={profileName}
+              value={displayName}
               onChange={(e) => setProfileName(e.target.value)}
               className="w-full px-3 py-2 rounded-lg bg-canvas border border-border-glass text-text-primary text-sm focus:outline-none focus:ring-1 focus:ring-neon-cyan/50"
             />
@@ -143,7 +146,7 @@ export default function SettingsPage() {
             <label className="block text-xs text-text-tertiary mb-1.5">Email</label>
             <input
               type="email"
-              value={profileEmail}
+              value={displayEmail}
               disabled
               className="w-full px-3 py-2 rounded-lg bg-canvas border border-border-glass text-text-tertiary text-sm cursor-not-allowed"
             />

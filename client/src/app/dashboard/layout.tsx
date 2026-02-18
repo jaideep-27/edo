@@ -14,18 +14,19 @@ export default function DashboardLayout({
   const router = useRouter();
   const { isAuthenticated, isLoading, loadUser } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   useEffect(() => {
-    loadUser();
+    loadUser().finally(() => setHasCheckedAuth(true));
   }, [loadUser]);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (hasCheckedAuth && !isLoading && !isAuthenticated) {
       router.push('/signin');
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [hasCheckedAuth, isAuthenticated, isLoading, router]);
 
-  if (isLoading) {
+  if (!hasCheckedAuth || isLoading) {
     return (
       <div className="min-h-screen bg-canvas flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">

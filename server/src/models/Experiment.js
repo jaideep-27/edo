@@ -63,6 +63,7 @@ const experimentSchema = new mongoose.Schema(
       default: 'draft',
       index: true,
     },
+    startedAt: { type: Date, default: null },
     tags: [{ type: String, trim: true }],
     notes: { type: String, maxlength: 2000 },
   },
