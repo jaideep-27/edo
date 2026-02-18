@@ -200,230 +200,305 @@ function RunningStatePanel({
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 1000);
+    const interval = setInterval(() => setNow(Date.now()), 100);
     return () => clearInterval(interval);
   }, []);
 
   const startMs = startedAt ? new Date(startedAt).getTime() : now;
-  const elapsed = Math.max(0, Math.floor((now - startMs) / 1000));
-  const minutes = Math.floor(elapsed / 60);
-  const seconds = elapsed % 60;
+  const elapsed = Math.max(0, (now - startMs) / 1000);
+  const elapsedWhole = Math.floor(elapsed);
+  const minutes = Math.floor(elapsedWhole / 60);
+  const seconds = elapsedWhole % 60;
+  const centiseconds = Math.floor((elapsed % 1) * 100);
   const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
   const algoColor = algoInfo?.color ?? '#66FCF1';
   const phaseName = progress.phase;
-  const percent = progress.percent;
+  const hasLiveData = progress.convergenceHistory.length > 0;
 
-  // Pipeline phases with real statuses from SSE
+  // For the circular progress — show real SSE percent, or an indeterminate animation
+  const percent = hasLiveData ? progress.percent : 0;
+
+  // Pipeline phases
   const phases = [
-    { id: 'initializing', label: 'Initializing', icon: '⚙️' },
-    { id: 'optimizing', label: 'Optimizing', icon: '🧬' },
-    { id: 'simulating', label: 'Simulating', icon: '☁️' },
-    { id: 'saving', label: 'Saving', icon: '💾' },
+    { id: 'initializing', label: 'Initialize' },
+    { id: 'optimizing', label: 'Optimize' },
+    { id: 'simulating', label: 'Simulate' },
+    { id: 'saving', label: 'Save' },
   ];
-
   const phaseOrder = ['initializing', 'optimizing', 'simulating', 'saving', 'completed'];
   const currentPhaseIdx = phaseOrder.indexOf(phaseName);
 
   const algoLabel =
-    algorithm === 'EDO' ? 'Enterprise Swarm Evolving' :
-    algorithm === 'PSO' ? 'Particle Swarm Converging' :
-    algorithm === 'ACO' ? 'Ant Colony Exploring' :
-    algorithm === 'GA' ? 'Genetic Crossover & Mutation' :
-    algorithm === 'WOA' ? 'Whale Spiral Hunting' :
-    algorithm === 'ROUND_ROBIN' ? 'Round Robin Scheduling' :
-    algorithm === 'MIN_MIN' ? 'Min-Min Mapping' :
-    'Max-Min Mapping';
+    algorithm === 'EDO' ? 'Enterprise Development Optimizer' :
+    algorithm === 'PSO' ? 'Particle Swarm Optimization' :
+    algorithm === 'ACO' ? 'Ant Colony Optimization' :
+    algorithm === 'GA' ? 'Genetic Algorithm' :
+    algorithm === 'WOA' ? 'Whale Optimization Algorithm' :
+    algorithm === 'ROUND_ROBIN' ? 'Round Robin' :
+    algorithm === 'MIN_MIN' ? 'Min-Min Heuristic' :
+    'Max-Min Heuristic';
 
-  const hasLiveData = progress.convergenceHistory.length > 0;
-  const latestFitness = progress.fitness;
-  const latestMakespan = progress.makespan;
-  const latestEnergy = progress.energy;
+  // SVG circular progress ring values
+  const ringSize = 200;
+  const strokeWidth = 8;
+  const radius = (ringSize - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percent / 100) * circumference;
 
-  // Improvement tracking (compare first vs latest convergence point)
+  // Indeterminate animation when no data yet
+  const isIndeterminate = !hasLiveData && status === 'running';
+
+  // Improvement tracking
   const firstPoint = progress.convergenceHistory[0];
-  const fitnessImprovement = firstPoint && latestFitness > 0
-    ? ((firstPoint.fitness - latestFitness) / firstPoint.fitness * 100)
+  const fitnessImprovement = firstPoint && progress.fitness > 0
+    ? ((firstPoint.fitness - progress.fitness) / firstPoint.fitness * 100)
     : 0;
 
   return (
-    <div className="glass rounded-xl border border-neon-cyan/20 overflow-hidden">
-      {/* ── Header with pulsing gradient ── */}
-      <div
-        className="relative px-6 py-4 overflow-hidden"
-        style={{ background: `linear-gradient(135deg, ${algoColor}15 0%, transparent 60%)` }}
-      >
+    <div className="glass rounded-2xl border border-neon-cyan/20 overflow-hidden">
+      <style>{`
+        @keyframes ring-rotate { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes ring-dash { 0% { stroke-dashoffset: ${circumference * 0.75}; } 50% { stroke-dashoffset: ${circumference * 0.25}; } 100% { stroke-dashoffset: ${circumference * 0.75}; } }
+        @keyframes pulse-ring { 0%,100% { opacity: 0.15; transform: scale(1); } 50% { opacity: 0.35; transform: scale(1.04); } }
+        @keyframes orbit { 0% { transform: rotate(0deg) translateX(108px) rotate(0deg); } 100% { transform: rotate(360deg) translateX(108px) rotate(-360deg); } }
+        @keyframes float-up { 0% { transform: translateY(0) scale(1); opacity: 0.6; } 100% { transform: translateY(-40px) scale(0); opacity: 0; } }
+        @keyframes metric-in { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes shimmer-x { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
+      `}</style>
+
+      {/* ── Hero section: Circular ring + metrics ── */}
+      <div className="relative px-6 py-8">
+        {/* Background gradient */}
         <div
-          className="absolute inset-0 opacity-20"
-          style={{
-            background: `linear-gradient(90deg, transparent, ${algoColor}20, transparent)`,
-            animation: 'shimmer 2s infinite',
-          }}
+          className="absolute inset-0 opacity-30"
+          style={{ background: `radial-gradient(ellipse at center, ${algoColor}12 0%, transparent 70%)` }}
         />
-        <style>{`@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }`}</style>
 
-        <div className="relative flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div
-                className="w-11 h-11 rounded-xl flex items-center justify-center text-lg"
-                style={{ backgroundColor: `${algoColor}20`, color: algoColor }}
-              >
-                {status === 'queued' ? '⏳' : '🚀'}
-              </div>
-              <div
-                className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full animate-pulse"
-                style={{ backgroundColor: algoColor }}
+        <div className="relative flex flex-col lg:flex-row items-center gap-8">
+          {/* ── LEFT: Circular progress ring ── */}
+          <div className="relative flex-shrink-0">
+            {/* Outer glow ring */}
+            <div
+              className="absolute inset-[-12px] rounded-full"
+              style={{
+                background: `conic-gradient(from 0deg, ${algoColor}00, ${algoColor}15, ${algoColor}00)`,
+                animation: 'ring-rotate 4s linear infinite',
+              }}
+            />
+            {/* Pulsing background ring */}
+            <div
+              className="absolute inset-[-4px] rounded-full border-2"
+              style={{
+                borderColor: `${algoColor}20`,
+                animation: 'pulse-ring 2s ease-in-out infinite',
+              }}
+            />
+
+            <svg width={ringSize} height={ringSize} className="transform -rotate-90" viewBox={`0 0 ${ringSize} ${ringSize}`}>
+              <defs>
+                <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor={algoColor} />
+                  <stop offset="50%" stopColor={algoColor} stopOpacity={0.8} />
+                  <stop offset="100%" stopColor="#6C3CE1" />
+                </linearGradient>
+                <filter id="glow">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
+              {/* Track */}
+              <circle
+                cx={ringSize / 2}
+                cy={ringSize / 2}
+                r={radius}
+                fill="none"
+                stroke="rgba(255,255,255,0.06)"
+                strokeWidth={strokeWidth}
               />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-text-primary">
-                {status === 'queued' ? 'Queued' : algoLabel}
-              </h3>
-              <p className="text-xs text-text-tertiary mt-0.5">
-                {taskCount} tasks → {vmCount} VMs · {maxIterations} iterations
-              </p>
-            </div>
-          </div>
+              {/* Progress arc */}
+              <circle
+                cx={ringSize / 2}
+                cy={ringSize / 2}
+                r={radius}
+                fill="none"
+                stroke="url(#ringGradient)"
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={isIndeterminate ? undefined : strokeDashoffset}
+                style={{
+                  transition: 'stroke-dashoffset 0.3s ease-out',
+                  ...(isIndeterminate ? {
+                    animation: `ring-dash 1.5s ease-in-out infinite, ring-rotate 2s linear infinite`,
+                    transformOrigin: 'center',
+                  } : {}),
+                }}
+                filter="url(#glow)"
+              />
+            </svg>
 
-          <div className="text-right flex items-center gap-6">
-            {/* Iteration counter */}
-            <div>
-              <p className="font-mono text-xl font-bold text-text-primary">
-                {progress.iteration + (hasLiveData ? 1 : 0)}
-                <span className="text-text-tertiary text-sm font-normal">/{maxIterations}</span>
-              </p>
-              <p className="text-[10px] text-text-tertiary uppercase tracking-wider">Iteration</p>
-            </div>
-            {/* Elapsed timer */}
-            <div>
-              <p className="font-mono text-xl font-bold" style={{ color: algoColor }}>
-                {timeStr}
-              </p>
-              <p className="text-[10px] text-text-tertiary uppercase tracking-wider">Elapsed</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Progress bar ── */}
-      <div className="px-6 py-3 border-t border-border-glass/40">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] text-text-tertiary font-medium uppercase tracking-wider">
-            Progress
-          </span>
-          <span className="text-xs font-mono font-bold" style={{ color: algoColor }}>
-            {percent}%
-          </span>
-        </div>
-        <div className="h-2 rounded-full bg-panel-elevated overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-300 ease-out"
-            style={{
-              width: `${percent}%`,
-              background: `linear-gradient(90deg, ${algoColor}, ${algoColor}CC)`,
-              boxShadow: `0 0 12px ${algoColor}40`,
-            }}
-          />
-        </div>
-      </div>
-
-      {/* ── Pipeline phases ── */}
-      <div className="px-6 py-3 border-t border-border-glass/40">
-        <div className="flex items-center gap-2">
-          {phases.map((phase, i) => {
-            const isActive = phaseOrder[i] === phaseName;
-            const isComplete = i < currentPhaseIdx;
-            return (
-              <React.Fragment key={phase.id}>
-                <div className="flex items-center gap-1.5 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    {isComplete ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-                    ) : isActive ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: algoColor }} />
-                    ) : (
-                      <Circle className="w-3.5 h-3.5 text-text-tertiary/40" />
-                    )}
-                    <span className={`text-[11px] font-medium ${
-                      isActive ? 'text-text-primary' : isComplete ? 'text-green-400' : 'text-text-tertiary/60'
-                    }`}>
-                      {phase.label}
-                    </span>
-                  </div>
-                </div>
-                {i < phases.length - 1 && (
-                  <div className={`w-6 h-px ${isComplete ? 'bg-green-400/50' : 'bg-border-glass'}`} />
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── Live Metrics Dashboard ── */}
-      {hasLiveData && (
-        <div className="px-6 py-4 border-t border-border-glass/40">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Fitness */}
-            <div className="rounded-lg p-3" style={{ backgroundColor: `${algoColor}08`, border: `1px solid ${algoColor}15` }}>
-              <div className="flex items-center gap-1.5 mb-1">
-                <TrendingDown className="w-3.5 h-3.5" style={{ color: algoColor }} />
-                <span className="text-[10px] text-text-tertiary uppercase tracking-wider">Fitness</span>
-              </div>
-              <p className="font-mono text-lg font-bold text-text-primary">{latestFitness.toFixed(2)}</p>
-              {fitnessImprovement > 0 && (
-                <p className="text-[10px] text-green-400 font-mono mt-0.5">
-                  ↓ {fitnessImprovement.toFixed(1)}% improved
-                </p>
+            {/* Center content */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              {hasLiveData ? (
+                <>
+                  <span className="font-mono text-3xl font-black text-text-primary leading-none">
+                    {percent}
+                    <span className="text-lg text-text-tertiary">%</span>
+                  </span>
+                  <span className="text-[10px] text-text-tertiary uppercase tracking-widest mt-1">
+                    {progress.iteration + 1}/{maxIterations}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Loader2 className="w-7 h-7 animate-spin mb-1" style={{ color: algoColor }} />
+                  <span className="text-[10px] text-text-tertiary uppercase tracking-wider">
+                    {status === 'queued' ? 'Queued' : 'Starting'}
+                  </span>
+                </>
               )}
             </div>
-            {/* Makespan */}
-            <div className="rounded-lg p-3 bg-[#FF2A6D08] border border-[#FF2A6D15]">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Timer className="w-3.5 h-3.5 text-[#FF2A6D]" />
-                <span className="text-[10px] text-text-tertiary uppercase tracking-wider">Makespan</span>
+
+            {/* Orbiting particles */}
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="absolute inset-0 flex items-center justify-center" style={{ animation: `ring-rotate ${3 + i * 0.7}s linear infinite`, animationDelay: `${i * -1.2}s` }}>
+                <div
+                  className="absolute rounded-full"
+                  style={{
+                    width: 4 - i,
+                    height: 4 - i,
+                    backgroundColor: algoColor,
+                    opacity: 0.5 - i * 0.1,
+                    top: -2,
+                    left: '50%',
+                    marginLeft: -2,
+                  }}
+                />
               </div>
-              <p className="font-mono text-lg font-bold text-text-primary">{latestMakespan.toFixed(1)}</p>
-              <p className="text-[10px] text-text-tertiary font-mono mt-0.5">ms</p>
+            ))}
+          </div>
+
+          {/* ── RIGHT: Info + metrics ── */}
+          <div className="flex-1 min-w-0 text-center lg:text-left">
+            {/* Algorithm label */}
+            <div className="flex items-center gap-2 justify-center lg:justify-start mb-1">
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: algoColor }} />
+              <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: algoColor }}>
+                {status === 'queued' ? 'Queued' : 'Running'}
+              </span>
             </div>
-            {/* Energy */}
-            <div className="rounded-lg p-3 bg-[#FFC85708] border border-[#FFC85715]">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Zap className="w-3.5 h-3.5 text-[#FFC857]" />
-                <span className="text-[10px] text-text-tertiary uppercase tracking-wider">Energy</span>
+            <h3 className="text-xl font-heading font-bold text-text-primary mb-0.5">{algoLabel}</h3>
+            <p className="text-sm text-text-tertiary mb-5">
+              {taskCount} tasks → {vmCount} VMs · {maxIterations} iterations
+            </p>
+
+            {/* Timer */}
+            <div className="inline-flex items-center gap-3 rounded-xl px-4 py-2.5 mb-5"
+              style={{ backgroundColor: `${algoColor}08`, border: `1px solid ${algoColor}15` }}>
+              <Timer className="w-4 h-4" style={{ color: algoColor }} />
+              <span className="font-mono text-2xl font-bold text-text-primary tracking-tight">
+                {timeStr}
+                <span className="text-sm text-text-tertiary">.{centiseconds.toString().padStart(2, '0')}</span>
+              </span>
+            </div>
+
+            {/* Pipeline phases - horizontal */}
+            <div className="flex items-center gap-1 justify-center lg:justify-start">
+              {phases.map((phase, i) => {
+                const isActive = phaseOrder[i] === phaseName;
+                const isComplete = i < currentPhaseIdx;
+                return (
+                  <React.Fragment key={phase.id}>
+                    <div
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-all duration-300 ${
+                        isActive ? 'text-text-primary' : isComplete ? 'text-green-400' : 'text-text-tertiary/40'
+                      }`}
+                      style={isActive ? { backgroundColor: `${algoColor}15`, color: algoColor } : {}}
+                    >
+                      {isComplete ? (
+                        <CheckCircle2 className="w-3 h-3" />
+                      ) : isActive ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Circle className="w-3 h-3" />
+                      )}
+                      {phase.label}
+                    </div>
+                    {i < phases.length - 1 && (
+                      <div className={`w-3 h-px ${isComplete ? 'bg-green-400/50' : 'bg-border-glass/30'}`} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Live Metrics Cards ── */}
+      {hasLiveData && (
+        <div className="px-6 pb-5 border-t border-border-glass/30">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 -mt-3">
+            {[
+              {
+                icon: TrendingDown, label: 'Fitness', color: algoColor,
+                value: progress.fitness.toFixed(2),
+                sub: fitnessImprovement > 0 ? `↓ ${fitnessImprovement.toFixed(1)}%` : undefined,
+                subColor: '#4ADE80',
+              },
+              {
+                icon: Timer, label: 'Makespan', color: '#FF2A6D',
+                value: progress.makespan.toFixed(1),
+                sub: 'time units',
+              },
+              {
+                icon: Zap, label: 'Energy', color: '#FFC857',
+                value: progress.energy.toFixed(1),
+                sub: 'joules',
+              },
+              {
+                icon: Gauge, label: 'Utilization', color: '#6C3CE1',
+                value: `${(progress.utilization * 100).toFixed(0)}%`,
+                sub: 'avg VM usage',
+              },
+            ].map((m, i) => (
+              <div
+                key={m.label}
+                className="rounded-xl p-3 backdrop-blur-sm"
+                style={{
+                  backgroundColor: `${m.color}08`,
+                  border: `1px solid ${m.color}12`,
+                  animation: `metric-in 0.4s ease-out ${i * 0.05}s both`,
+                }}
+              >
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <m.icon className="w-3 h-3" style={{ color: m.color }} />
+                  <span className="text-[9px] text-text-tertiary uppercase tracking-wider font-semibold">{m.label}</span>
+                </div>
+                <p className="font-mono text-lg font-bold text-text-primary leading-none">{m.value}</p>
+                {m.sub && (
+                  <p className="text-[9px] font-mono mt-1" style={{ color: m.subColor ?? '#71717A' }}>{m.sub}</p>
+                )}
               </div>
-              <p className="font-mono text-lg font-bold text-text-primary">{latestEnergy.toFixed(1)}</p>
-              <p className="text-[10px] text-text-tertiary font-mono mt-0.5">J</p>
-            </div>
-            {/* Utilization */}
-            <div className="rounded-lg p-3 bg-[#6C3CE108] border border-[#6C3CE115]">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Gauge className="w-3.5 h-3.5 text-[#6C3CE1]" />
-                <span className="text-[10px] text-text-tertiary uppercase tracking-wider">Utilization</span>
-              </div>
-              <p className="font-mono text-lg font-bold text-text-primary">
-                {(progress.utilization * 100).toFixed(1)}%
-              </p>
-              <p className="text-[10px] text-text-tertiary font-mono mt-0.5">avg</p>
-            </div>
+            ))}
           </div>
         </div>
       )}
 
       {/* ── Live Convergence Chart ── */}
       {progress.convergenceHistory.length > 1 && (
-        <div className="px-6 pb-5 pt-2 border-t border-border-glass/40">
-          <div className="flex items-center justify-between mb-3">
+        <div className="px-6 pb-5 border-t border-border-glass/30">
+          <div className="flex items-center justify-between mt-4 mb-3">
             <h4 className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">
               Live Convergence
             </h4>
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-              <span className="text-[10px] text-text-tertiary">Streaming</span>
+              <span className="text-[10px] text-text-tertiary">{progress.convergenceHistory.length} pts</span>
             </div>
           </div>
-          <div className="h-48 rounded-lg overflow-hidden" style={{ backgroundColor: `${algoColor}04` }}>
+          <div className="h-44 rounded-xl overflow-hidden" style={{ backgroundColor: `${algoColor}04` }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={progress.convergenceHistory} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
                 <defs>
@@ -432,150 +507,34 @@ function RunningStatePanel({
                     <stop offset="100%" stopColor={algoColor} stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1F283340" />
-                <XAxis
-                  dataKey="iteration"
-                  tick={{ fill: '#A0A0B0', fontSize: 10 }}
-                  tickLine={false}
-                  axisLine={{ stroke: '#1F283360' }}
-                />
-                <YAxis
-                  tick={{ fill: '#A0A0B0', fontSize: 10 }}
-                  tickLine={false}
-                  axisLine={{ stroke: '#1F283360' }}
-                  width={50}
-                />
+                <CartesianGrid strokeDasharray="3 3" stroke="#1F283320" />
+                <XAxis dataKey="iteration" tick={{ fill: '#A0A0B0', fontSize: 9 }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fill: '#A0A0B0', fontSize: 9 }} tickLine={false} axisLine={false} width={50} />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1F2833',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 8,
-                    fontSize: 11,
-                  }}
+                  contentStyle={{ backgroundColor: '#1F2833', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 11 }}
                   formatter={(value: number | undefined) => [value != null ? value.toFixed(4) : '—', 'Fitness']}
                   labelFormatter={(label) => `Iteration ${label}`}
                 />
-                <Area
-                  type="monotone"
-                  dataKey="fitness"
-                  stroke={algoColor}
-                  strokeWidth={2}
-                  fill="url(#liveGradient)"
-                  dot={false}
-                  activeDot={{ r: 3, fill: algoColor }}
-                  isAnimationActive={false}
-                />
+                <Area type="monotone" dataKey="fitness" stroke={algoColor} strokeWidth={2} fill="url(#liveGradient)" dot={false} activeDot={{ r: 3, fill: algoColor }} isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
-          </div>
-
-          {/* Secondary live chart: Makespan & Energy */}
-          {progress.convergenceHistory.length > 2 && (
-            <div className="mt-3 h-32 rounded-lg overflow-hidden" style={{ backgroundColor: `#FF2A6D04` }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={progress.convergenceHistory} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1F283340" />
-                  <XAxis dataKey="iteration" tick={{ fill: '#A0A0B0', fontSize: 9 }} tickLine={false} />
-                  <YAxis yAxisId="left" tick={{ fill: '#A0A0B0', fontSize: 9 }} tickLine={false} width={45} />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fill: '#A0A0B0', fontSize: 9 }} tickLine={false} width={45} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#1F2833',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: 8,
-                      fontSize: 10,
-                    }}
-                  />
-                  <Line
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="makespan"
-                    name="Makespan (ms)"
-                    stroke="#FF2A6D"
-                    strokeWidth={1.5}
-                    dot={false}
-                    isAnimationActive={false}
-                  />
-                  <Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="energy"
-                    name="Energy (J)"
-                    stroke="#FFC857"
-                    strokeWidth={1.5}
-                    dot={false}
-                    isAnimationActive={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Waiting state (no data yet) ── */}
-      {!hasLiveData && (
-        <div className="px-6 pb-5 pt-2 border-t border-border-glass/40">
-          <div
-            className="relative h-24 rounded-lg overflow-hidden flex items-center justify-center"
-            style={{ backgroundColor: `${algoColor}08`, border: `1px solid ${algoColor}15` }}
-          >
-            {/* Animated particles */}
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                className="absolute rounded-full"
-                style={{
-                  width: 3 + (i % 3) * 2,
-                  height: 3 + (i % 3) * 2,
-                  backgroundColor: algoColor,
-                  opacity: 0.2 + (i % 4) * 0.1,
-                  left: `${10 + (i * 10) % 80}%`,
-                  top: `${25 + Math.sin(i * 1.5) * 25}%`,
-                  animation: `p-float-${i % 3} ${2 + (i % 2)}s ease-in-out infinite`,
-                  animationDelay: `${(i * 0.2) % 1.5}s`,
-                }}
-              />
-            ))}
-            <style>{`
-              @keyframes p-float-0 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(10px,-6px); } }
-              @keyframes p-float-1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-6px,8px); } }
-              @keyframes p-float-2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(8px,4px); } }
-            `}</style>
-            <div className="text-center z-10">
-              <Loader2 className="w-5 h-5 animate-spin mx-auto mb-1.5" style={{ color: algoColor }} />
-              <p className="text-xs font-medium" style={{ color: algoColor }}>
-                {status === 'queued' ? 'Waiting in queue…' : 'Connecting to optimizer…'}
-              </p>
-            </div>
           </div>
         </div>
       )}
 
       {/* ── Status footer ── */}
-      <div className="px-6 py-3 border-t border-border-glass/40">
-        <div className="flex items-center gap-4 text-[11px]">
-          <div className="flex items-center gap-1.5">
-            <div
-              className="w-1.5 h-1.5 rounded-full animate-pulse"
-              style={{ backgroundColor: progress.connected ? '#4ADE80' : '#FFC857' }}
-            />
-            <span className="text-text-tertiary">
-              {progress.connected ? 'Live' : 'Connecting'}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Cpu className="w-3 h-3 text-text-tertiary" />
-            <span className="font-mono font-medium" style={{ color: algoColor }}>{algoInfo?.name ?? algorithm}</span>
-          </div>
-          {hasLiveData && (
-            <div className="flex items-center gap-1.5">
-              <Activity className="w-3 h-3 text-text-tertiary" />
-              <span className="text-text-secondary font-mono text-[10px]">
-                {progress.convergenceHistory.length} data points
-              </span>
-            </div>
-          )}
+      <div className="px-6 py-2.5 border-t border-border-glass/30 flex items-center gap-4 text-[10px]">
+        <div className="flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: progress.connected ? '#4ADE80' : '#FFC857' }} />
+          <span className="text-text-tertiary">{progress.connected ? 'Live' : 'Connecting'}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Cpu className="w-3 h-3 text-text-tertiary" />
+          <span className="font-mono font-medium" style={{ color: algoColor }}>{algoInfo?.name ?? algorithm}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Server className="w-3 h-3 text-text-tertiary" />
+          <span className="text-text-tertiary">CloudSim Plus 8.0.0</span>
         </div>
       </div>
     </div>
@@ -615,17 +574,23 @@ export default function ExperimentDetailPage() {
     }
   }, [id]);
 
-  // Initial fetch
+  // Initial fetch — skip re-fetching if experiment is already in store
+  // (preserves 'queued'/'running' status from runExperiment action)
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      await fetchExperiment(id);
+      // If the store already has this experiment (e.g., from runExperiment),
+      // don't overwrite — let polling handle the transition
+      if (!experiment || experiment._id !== id) {
+        await fetchExperiment(id);
+      }
       await loadResult();
       setLoading(false);
     };
     load();
     return () => clearCurrent();
-  }, [id, fetchExperiment, loadResult, clearCurrent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   // Poll while running — uses silent pollExperiment (no isLoading flicker)
   const pollingRef = React.useRef(false);
@@ -645,7 +610,7 @@ export default function ExperimentDetailPage() {
           await loadResult();
         }
       }
-    }, 3000);
+    }, 1500);
     return () => clearInterval(interval);
   }, [experimentStatus, id, pollExperiment, loadResult]);
 
@@ -657,7 +622,19 @@ export default function ExperimentDetailPage() {
     }
   }, [experiment?.status, result, loadResult]);
 
+  // When SSE reports completion, immediately refresh experiment & results
+  useEffect(() => {
+    if (sseProgress.completed) {
+      pollExperiment(id).then((updated) => {
+        if (updated?.status === 'completed') {
+          loadResult();
+        }
+      });
+    }
+  }, [sseProgress.completed, id, pollExperiment, loadResult]);
+
   const handleRun = async () => {
+    setResult(null); // Clear stale results so running panel shows
     await runExperiment(id);
   };
   const handleDelete = async () => {

@@ -45,6 +45,16 @@ export default function ExperimentsPage() {
     }
   }, [fetchExperiments, hasFetched]);
 
+  // Auto-poll when any experiment is running or queued
+  const hasActive = experiments.some((e) => e.status === 'running' || e.status === 'queued');
+  useEffect(() => {
+    if (!hasActive) return;
+    const interval = setInterval(() => {
+      fetchExperiments();
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [hasActive, fetchExperiments]);
+
   const filtered = experiments.filter((e) => {
     const matchesSearch =
       e.name.toLowerCase().includes(search.toLowerCase()) ||

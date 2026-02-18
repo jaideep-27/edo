@@ -162,8 +162,13 @@ export default function NewExperimentPage() {
         },
       };
       const experiment = await createExperiment(payload);
-      if (autoRun && experiment?._id) await runExperiment(experiment._id);
-      router.push('/dashboard/experiments');
+      if (autoRun && experiment?._id) {
+        await runExperiment(experiment._id);
+        // Navigate to detail page so user sees live execution visualization
+        router.push(`/dashboard/experiments/${experiment._id}`);
+      } else {
+        router.push('/dashboard/experiments');
+      }
     } catch { setError('Failed to create experiment. Please try again.'); }
   };
 

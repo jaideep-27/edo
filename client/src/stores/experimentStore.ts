@@ -22,7 +22,7 @@ interface ExperimentState {
   setError: (error: string | null) => void;
 }
 
-export const useExperimentStore = create<ExperimentState>((set, get) => ({
+export const useExperimentStore = create<ExperimentState>((set) => ({
   experiments: [],
   currentExperiment: null,
   currentResults: null,
@@ -98,9 +98,14 @@ export const useExperimentStore = create<ExperimentState>((set, get) => ({
   runExperiment: async (id) => {
     set({ isLoading: true, error: null });
     try {
-      await api.post(`/experiments/${id}/run`);
-      // Refresh experiment to get updated status
-      await get().fetchExperiment(id);
+      const { data: res } = await api.post(`/experiments/${id}/run`);
+      // Use the response status (queued) rather than re-fetching —
+      // a re-fetch may find the experiment already completed for fast runs,
+      // skipping the running-state UI entirely.
+      const exp = res.data?.experiment ?? res.data;
+      if (exp) {
+        set({ currentExperiment: exp });
+      }
       set({ isLoading: false });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to run experiment';
