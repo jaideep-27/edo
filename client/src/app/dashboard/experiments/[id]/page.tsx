@@ -552,7 +552,6 @@ export default function ExperimentDetailPage() {
     pollExperiment,
     runExperiment,
     deleteExperiment,
-    clearCurrent,
   } = useExperimentStore();
 
   const [result, setResult] = useState<ResultData | null>(null);
@@ -577,18 +576,26 @@ export default function ExperimentDetailPage() {
   // Initial fetch — skip re-fetching if experiment is already in store
   // (preserves 'queued'/'running' status from runExperiment action)
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
       setLoading(true);
-      // If the store already has this experiment (e.g., from runExperiment),
-      // don't overwrite — let polling handle the transition
-      if (!experiment || experiment._id !== id) {
+      // Read current store state directly (not stale closure)
+      const storeExp = useExperimentStore.getState().currentExperiment;
+      const alreadyLoaded = storeExp && storeExp._id === id;
+      if (!alreadyLoaded) {
         await fetchExperiment(id);
       }
-      await loadResult();
-      setLoading(false);
+      if (!cancelled) {
+        await loadResult();
+        setLoading(false);
+      }
     };
     load();
-    return () => clearCurrent();
+    return () => {
+      cancelled = true;
+      // Only clear if navigating away (not during strict-mode remount)
+      // The next page will set its own experiment if needed
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
