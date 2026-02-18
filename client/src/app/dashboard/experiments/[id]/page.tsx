@@ -6,6 +6,7 @@ import { useExperimentStore } from '@/stores/experimentStore';
 import { useExperimentSSE } from '@/hooks/useExperimentSSE';
 import type { SSEProgress } from '@/hooks/useExperimentSSE';
 import { EXPERIMENT_STATUSES, ALGORITHMS } from '@/lib/constants';
+import { exportExperimentPdf } from '@/lib/exportPdf';
 import {
   ArrowLeft,
   Play,
@@ -650,17 +651,10 @@ export default function ExperimentDetailPage() {
       router.push('/dashboard/experiments');
     }
   };
-  const handleExport = async () => {
+  const handleExport = () => {
+    if (!experiment || !result) return;
     try {
-      const { data } = await api.get(`/experiments/${id}/result/export`, {
-        responseType: 'blob',
-      });
-      const url = window.URL.createObjectURL(new Blob([data]));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `result-${id}.json`;
-      a.click();
-      window.URL.revokeObjectURL(url);
+      exportExperimentPdf(experiment, result);
     } catch {
       alert('Export failed');
     }
