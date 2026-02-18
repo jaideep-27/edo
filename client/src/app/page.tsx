@@ -236,6 +236,13 @@ export default function Home() {
               </a>
             ))}
             <div className="border-t border-border-glass pt-4 flex flex-col gap-3">
+              <button
+                onClick={toggleTheme}
+                className="flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors py-2"
+              >
+                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+              </button>
               <Link href="/signin" className="text-sm text-text-secondary hover:text-text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
                 Sign In
               </Link>
