@@ -12,9 +12,9 @@ import type { ExperimentResult } from '@/types/result';
 import { ALGORITHMS } from '@/lib/constants';
 
 /* ────────────────────────────────────────── *
- *  Color palette (hex)                       *
+ *  Color palettes — dark & light             *
  * ────────────────────────────────────────── */
-const C = {
+const DARK = {
   canvas: '#0B0C10',
   panel: '#1F2833',
   panelLight: '#2A3442',
@@ -28,6 +28,22 @@ const C = {
   textTertiary: '#666680',
   white: '#FFFFFF',
   border: '#333355',
+};
+
+const LIGHT = {
+  canvas: '#F4F6FA',
+  panel: '#FFFFFF',
+  panelLight: '#E8ECF4',
+  cyan: '#0891B2',
+  magenta: '#DB2777',
+  amber: '#D97706',
+  purple: '#7C3AED',
+  green: '#16A34A',
+  textPrimary: '#0F172A',
+  textSecondary: '#475569',
+  textTertiary: '#94A3B8',
+  white: '#0F172A',   // re-used for "white text" slots → dark on light bg
+  border: '#CBD5E1',
 };
 
 /** Convert hex "#RRGGBB" → [r, g, b] */
@@ -56,10 +72,13 @@ function roundedRect(
   doc.roundedRect(x, y, w, h, r, r, 'F');
 }
 
+type Palette = typeof DARK;
+
 /** Draw a section title with a colored left accent */
-function sectionTitle(doc: jsPDF, y: number, text: string, accentColor: string = C.cyan): number {
+function sectionTitle(doc: jsPDF, y: number, text: string, C: Palette, accentColor?: string): number {
+  const accent = accentColor ?? C.cyan;
   // Accent bar
-  doc.setFillColor(...hex(accentColor));
+  doc.setFillColor(...hex(accent));
   doc.rect(15, y, 3, 8, 'F');
   // Title text
   doc.setFont('helvetica', 'bold');
@@ -69,11 +88,10 @@ function sectionTitle(doc: jsPDF, y: number, text: string, accentColor: string =
   return y + 14;
 }
 
-/** Check if we need a new page, and if so add one with the dark background */
-function ensureSpace(doc: jsPDF, y: number, needed: number): number {
+/** Check if we need a new page, and if so add one with the background colour */
+function ensureSpace(doc: jsPDF, y: number, needed: number, C: Palette): number {
   if (y + needed > 275) {
     doc.addPage();
-    // Dark background
     doc.setFillColor(...hex(C.canvas));
     doc.rect(0, 0, 210, 297, 'F');
     return 15;
@@ -84,7 +102,12 @@ function ensureSpace(doc: jsPDF, y: number, needed: number): number {
 /* ═══════════════════════════════════════════
  *  MAIN EXPORT FUNCTION
  * ═══════════════════════════════════════════ */
-export function exportExperimentPdf(experiment: Experiment, result: ExperimentResult) {
+export function exportExperimentPdf(
+  experiment: Experiment,
+  result: ExperimentResult,
+  theme: 'dark' | 'light' = 'dark',
+) {
+  const C: Palette = theme === 'light' ? LIGHT : DARK;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = 210;
 
@@ -134,7 +157,7 @@ export function exportExperimentPdf(experiment: Experiment, result: ExperimentRe
   let y = 84;
 
   // ─── KEY METRICS CARDS ───
-  y = sectionTitle(doc, y, 'Key Metrics');
+  y = sectionTitle(doc, y, 'Key Metrics', C);
 
   const metrics = [
     { label: 'Makespan', value: fmt(result.makespan), unit: 'ms', color: C.cyan },
@@ -177,7 +200,7 @@ export function exportExperimentPdf(experiment: Experiment, result: ExperimentRe
   y += cardH + 10;
 
   // ─── EXPERIMENT CONFIGURATION ───
-  y = sectionTitle(doc, y, 'Experiment Configuration');
+  y = sectionTitle(doc, y, 'Experiment Configuration', C);
 
   autoTable(doc, {
     startY: y,
@@ -217,8 +240,8 @@ export function exportExperimentPdf(experiment: Experiment, result: ExperimentRe
 
   // ─── CONVERGENCE CHART (drawn with lines) ───
   if (result.convergenceData?.length > 1) {
-    y = ensureSpace(doc, y, 90);
-    y = sectionTitle(doc, y, 'Convergence Curve');
+    y = ensureSpace(doc, y, 90, C);
+    y = sectionTitle(doc, y, 'Convergence Curve', C);
 
     const chartX = 25;
     const chartY = y + 2;
@@ -301,8 +324,8 @@ export function exportExperimentPdf(experiment: Experiment, result: ExperimentRe
 
   // ─── CONVERGENCE DATA TABLE (summary) ───
   if (result.convergenceData?.length > 0) {
-    y = ensureSpace(doc, y, 50);
-    y = sectionTitle(doc, y, 'Convergence Data (Sampled)');
+    y = ensureSpace(doc, y, 50, C);
+    y = sectionTitle(doc, y, 'Convergence Data (Sampled)', C);
 
     // Sample at most 15 rows evenly spaced
     const data = result.convergenceData;
@@ -350,8 +373,8 @@ export function exportExperimentPdf(experiment: Experiment, result: ExperimentRe
 
   // ─── TASK SCHEDULE TABLE ───
   if (result.schedule?.length > 0) {
-    y = ensureSpace(doc, y, 50);
-    y = sectionTitle(doc, y, 'Task Schedule');
+    y = ensureSpace(doc, y, 50, C);
+    y = sectionTitle(doc, y, 'Task Schedule', C);
 
     autoTable(doc, {
       startY: y,
@@ -387,8 +410,8 @@ export function exportExperimentPdf(experiment: Experiment, result: ExperimentRe
 
   // ─── VM LOAD DISTRIBUTION ───
   if (result.schedule?.length > 0) {
-    y = ensureSpace(doc, y, 60);
-    y = sectionTitle(doc, y, 'VM Load Distribution');
+    y = ensureSpace(doc, y, 60, C);
+    y = sectionTitle(doc, y, 'VM Load Distribution', C);
 
     const vmMap: Record<number, number> = {};
     result.schedule.forEach((s) => {
@@ -442,8 +465,8 @@ export function exportExperimentPdf(experiment: Experiment, result: ExperimentRe
 
   // ─── PARETO FRONT ───
   if (result.paretoPoints?.length > 0) {
-    y = ensureSpace(doc, y, 80);
-    y = sectionTitle(doc, y, 'Pareto Front (Makespan vs Energy)');
+    y = ensureSpace(doc, y, 80, C);
+    y = sectionTitle(doc, y, 'Pareto Front (Makespan vs Energy)', C);
 
     const pX = 30;
     const pY = y + 2;
@@ -496,8 +519,8 @@ export function exportExperimentPdf(experiment: Experiment, result: ExperimentRe
 
   // ─── PARETO TABLE ───
   if (result.paretoPoints?.length > 0) {
-    y = ensureSpace(doc, y, 40);
-    y = sectionTitle(doc, y, 'Pareto Points');
+    y = ensureSpace(doc, y, 40, C);
+    y = sectionTitle(doc, y, 'Pareto Points', C);
 
     autoTable(doc, {
       startY: y,
@@ -532,8 +555,8 @@ export function exportExperimentPdf(experiment: Experiment, result: ExperimentRe
 
   // ─── WORKLOAD CONFIGURATION DETAILS ───
   if (experiment.workloadConfig?.tasks?.length > 0) {
-    y = ensureSpace(doc, y, 50);
-    y = sectionTitle(doc, y, 'Workload Configuration (Tasks)');
+    y = ensureSpace(doc, y, 50, C);
+    y = sectionTitle(doc, y, 'Workload Configuration (Tasks)', C);
 
     autoTable(doc, {
       startY: y,
@@ -568,8 +591,8 @@ export function exportExperimentPdf(experiment: Experiment, result: ExperimentRe
 
   // ─── VM CONFIGURATION DETAILS ───
   if (experiment.vmConfig?.vms?.length > 0) {
-    y = ensureSpace(doc, y, 50);
-    y = sectionTitle(doc, y, 'VM Configuration');
+    y = ensureSpace(doc, y, 50, C);
+    y = sectionTitle(doc, y, 'VM Configuration', C);
 
     autoTable(doc, {
       startY: y,
@@ -605,8 +628,8 @@ export function exportExperimentPdf(experiment: Experiment, result: ExperimentRe
 
   // ─── RAW LOGS (if any) ───
   if (result.rawLogs) {
-    y = ensureSpace(doc, y, 40);
-    y = sectionTitle(doc, y, 'Execution Logs');
+    y = ensureSpace(doc, y, 40, C);
+    y = sectionTitle(doc, y, 'Execution Logs', C);
 
     doc.setFont('courier', 'normal');
     doc.setFontSize(6.5);
@@ -616,7 +639,7 @@ export function exportExperimentPdf(experiment: Experiment, result: ExperimentRe
     const maxLogLines = 80; // cap to avoid too many pages
     const lines = logLines.slice(0, maxLogLines);
     for (const line of lines) {
-      y = ensureSpace(doc, y, 5);
+      y = ensureSpace(doc, y, 5, C);
       // Truncate long lines
       const truncated = line.length > 120 ? line.slice(0, 120) + '…' : line;
       doc.text(truncated, 17, y);

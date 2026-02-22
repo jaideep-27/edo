@@ -183,6 +183,8 @@ class BaseOptimizer(ABC):
                 "endTime": 0,
             })
 
+        pareto_points = self._compute_pareto_front(convergence_data)
+
         return {
             "makespan": round(self.compute_makespan(best_schedule), 4),
             "energy": round(self.compute_energy(best_schedule), 4),
@@ -191,10 +193,66 @@ class BaseOptimizer(ABC):
                 self.compute_resource_utilization(best_schedule), 4
             ),
             "convergenceData": convergence_data,
-            "paretoPoints": [],
+            "paretoPoints": pareto_points,
             "schedule": schedule_entries,
             "logs": "",
         }
+
+    def _compute_pareto_front(self, convergence_data):
+        """
+        Derive Pareto-optimal (makespan, energy) points from the
+        convergence history.  A point dominates another when it is
+        better (lower) on *both* objectives.
+
+        Returns a list of dicts sorted by makespan ascending.
+        """
+        if not convergence_data:
+            return []
+
+        # Collect unique (makespan, energy) pairs that have both fields
+        candidates = [
+            {"makespan": d["makespan"], "energy": d["energy"],
+             "reliability": d.get("bestFitness", 0)}
+            for d in convergence_data
+            if d.get("makespan") is not None and d.get("energy") is not None
+        ]
+
+        if not candidates:
+            return []
+
+        # Remove dominated points: point A is dominated if there exists B
+        # such that B.makespan <= A.makespan AND B.energy <= A.energy
+        # (with at least one strict inequality).
+        pareto = []
+        for a in candidates:
+            dominated = False
+            for b in candidates:
+                if b is a:
+                    continue
+                if (b["makespan"] <= a["makespan"] and
+                        b["energy"] <= a["energy"] and
+                        (b["makespan"] < a["makespan"] or
+                         b["energy"] < a["energy"])):
+                    dominated = True
+                    break
+            if not dominated:
+                pareto.append(a)
+
+        # Deduplicate and sort by makespan
+        seen = set()
+        unique = []
+        for p in pareto:
+            key = (round(p["makespan"], 2), round(p["energy"], 2))
+            if key not in seen:
+                seen.add(key)
+                unique.append({
+                    "makespan": round(p["makespan"], 4),
+                    "energy": round(p["energy"], 4),
+                    "reliability": round(p.get("reliability", 0), 4),
+                })
+
+        unique.sort(key=lambda p: p["makespan"])
+        return unique
 
     # ── Abstract method ────────────────────────────────────
 

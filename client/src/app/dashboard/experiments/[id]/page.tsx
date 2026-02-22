@@ -51,6 +51,7 @@ import {
 } from 'recharts';
 import api from '@/lib/api';
 import { useChartTheme } from '@/hooks/useChartTheme';
+import { useTheme } from '@/components/theme-provider';
 interface ConvergencePoint {
   iteration: number;
   fitness: number;
@@ -561,6 +562,7 @@ export default function ExperimentDetailPage() {
 
   // Chart theme colours (responds to dark/light toggle)
   const ct = useChartTheme();
+  const { theme } = useTheme();
 
   // SSE real-time progress — must be called unconditionally before any returns
   const sseProgress = useExperimentSSE(experiment?._id, experiment?.status);
@@ -657,7 +659,7 @@ export default function ExperimentDetailPage() {
   const handleExport = () => {
     if (!experiment || !result) return;
     try {
-      exportExperimentPdf(experiment, result);
+      exportExperimentPdf(experiment, result, theme === 'light' ? 'light' : 'dark');
     } catch {
       alert('Export failed');
     }
