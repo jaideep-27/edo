@@ -20,14 +20,16 @@ app.use(helmet());
 
 const allowedOrigins = [
   'http://localhost:3000',
+  'https://edo-a1.vercel.app',
   process.env.CLIENT_URL,
-].filter(Boolean);
+].filter(Boolean).map(o => o.replace(/\/+$/, '')); // strip trailing slashes
 
 app.use(
   cors({
     origin: (origin, cb) => {
       // allow requests with no origin (mobile apps, curl, etc.)
-      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      if (!origin) return cb(null, true);
+      if (allowedOrigins.includes(origin.replace(/\/+$/, ''))) return cb(null, true);
       cb(new Error('Not allowed by CORS'));
     },
     credentials: true,
