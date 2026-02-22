@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, startTransition } from 'react';
 
 export interface ProgressEvent {
   type: 'progress';
@@ -89,9 +89,19 @@ const INITIAL_STATE: SSEProgress = {
   connected: false,
 };
 
+/** Maximum number of times the hook will try to reconnect on error. */
+const MAX_RETRIES = 3;
+/** Base delay (ms) for exponential back-off between retries. */
+const RETRY_BASE_MS = 2000;
+
 /**
  * SSE hook for real-time experiment progress.
  * Connects when experimentId is provided and status is 'running' or 'queued'.
+ *
+ * Handles two failure modes automatically:
+ *  - 401 (expired/invalid token): stops retrying immediately and marks errored.
+ *  - Transient network errors: retries up to MAX_RETRIES times with
+ *    exponential back-off before giving up.
  */
 export function useExperimentSSE(
   experimentId: string | undefined,
@@ -100,33 +110,39 @@ export function useExperimentSSE(
   const [state, setState] = useState<SSEProgress>(INITIAL_STATE);
   const esRef = useRef<EventSource | null>(null);
   const historyRef = useRef<LiveConvergencePoint[]>([]);
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref to hold scheduleRetry so connect() can call it without a circular dep.
+  const scheduleRetryRef = useRef<() => void>(() => {});
 
   const cleanup = useCallback(() => {
     if (esRef.current) {
       esRef.current.close();
       esRef.current = null;
     }
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
   }, []);
 
-  useEffect(() => {
-    const shouldConnect = experimentId && (status === 'running' || status === 'queued');
+  // Extracted so it can be called both on mount and on retry.
+  const connect = useCallback(() => {
+    if (esRef.current) return; // already open
 
-    if (!shouldConnect) {
-      cleanup();
-      return;
-    }
-
-    // Don't reconnect if already connected
-    if (esRef.current) return;
-
-    // Reset
-    historyRef.current = [];
-
+    // Always read the token fresh — avoids stale/expired token on reconnect.
     const token = typeof window !== 'undefined'
       ? localStorage.getItem('edo_token')
       : null;
 
-    if (!token) return;
+    if (!token) {
+      setState((prev) => ({
+        ...prev,
+        errored: true,
+        errorMessage: 'Not authenticated. Please log in again.',
+      }));
+      return;
+    }
 
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
     const url = `${baseUrl}/experiments/${experimentId}/progress?token=${encodeURIComponent(token)}`;
@@ -140,6 +156,8 @@ export function useExperimentSSE(
         const dataType = data.type as string;
 
         if (dataType === 'connected') {
+          // Successful connection — reset retry counter.
+          retryCountRef.current = 0;
           setState((prev) => ({ ...prev, connected: true }));
           return;
         }
@@ -217,14 +235,78 @@ export function useExperimentSSE(
     };
 
     es.onerror = () => {
+      // Close the broken connection so the next attempt opens a fresh one.
+      es.close();
+      esRef.current = null;
       setState((prev) => ({ ...prev, connected: false }));
+
+      // Check if the server returned a 401 by probing the endpoint with fetch.
+      // EventSource doesn't expose HTTP status codes directly, so we do a quick
+      // HEAD-like fetch to distinguish auth failures from transient errors.
+      const probeUrl = url;
+      fetch(probeUrl, { method: 'GET', headers: { Accept: 'text/event-stream' } })
+        .then((res) => {
+          if (res.status === 401) {
+            // Token is expired or invalid — stop retrying, surface the error.
+            setState((prev) => ({
+              ...prev,
+              errored: true,
+              errorMessage: 'Session expired. Please refresh the page and log in again.',
+            }));
+            return;
+          }
+          // Any other error — attempt retry with back-off.
+          scheduleRetryRef.current();
+        })
+        .catch(() => {
+          // Network unreachable — still worth retrying.
+          scheduleRetryRef.current();
+        });
     };
+  // connect is recreated when experimentId changes, so it closes over the
+  // current experimentId safely.
+  }, [experimentId, cleanup]);
+
+  const scheduleRetry = useCallback(() => {
+    if (retryCountRef.current >= MAX_RETRIES) {
+      setState((prev) => ({
+        ...prev,
+        errored: true,
+        errorMessage: 'Lost connection to the server. Please refresh the page.',
+      }));
+      return;
+    }
+    const delay = RETRY_BASE_MS * Math.pow(2, retryCountRef.current);
+    retryCountRef.current += 1;
+    retryTimerRef.current = setTimeout(() => {
+      retryTimerRef.current = null;
+      connect();
+    }, delay);
+  }, [connect]);
+
+  // Keep the ref in sync so connect()'s onerror closure always calls the
+  // latest version of scheduleRetry without creating a circular dependency.
+  useEffect(() => {
+    scheduleRetryRef.current = scheduleRetry;
+  }, [scheduleRetry]);
+
+  useEffect(() => {
+    const shouldConnect = experimentId && (status === 'running' || status === 'queued');
+
+    if (!shouldConnect) {
+      cleanup();
+      return;
+    }
+
+    // Reset state and counters for a fresh connection attempt.
+    historyRef.current = [];
+    retryCountRef.current = 0;
+    startTransition(() => { connect(); });
 
     return () => {
       cleanup();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [experimentId, status]);
+  }, [experimentId, status, connect, cleanup]);
 
   return state;
 }
