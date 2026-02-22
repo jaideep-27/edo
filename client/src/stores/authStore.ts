@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import api from '@/lib/api';
 import type { User, LoginCredentials, RegisterCredentials } from '@/types';
+import axios from 'axios';
 
 interface AuthState {
   user: User | null;
@@ -63,9 +64,19 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const { data: res } = await api.get('/auth/me');
       set({ user: res.data.user, token, isAuthenticated: true, isLoading: false });
-    } catch {
-      localStorage.removeItem('edo_token');
-      set({ user: null, token: null, isAuthenticated: false, isLoading: false });
+    } catch (error) {
+      // Only invalidate the session when the server explicitly rejects the
+      // token (401 Unauthorized). Any other failure — network timeout, 5xx
+      // server error, Render cold-start, etc. — should leave the stored
+      // token intact so the user stays logged in and can retry on next load.
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        localStorage.removeItem('edo_token');
+        set({ user: null, token: null, isAuthenticated: false, isLoading: false });
+      } else {
+        // Non-401 error: keep the token, treat user as still authenticated
+        // so they aren't bounced to the login page over a transient outage.
+        set({ isAuthenticated: true, isLoading: false });
+      }
     }
   },
 
