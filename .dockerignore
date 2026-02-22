@@ -1,0 +1,38 @@
+# Client — not needed in backend image
+client/
+
+# Version control
+.git/
+.gitignore
+
+# Environment / secrets
+.env
+.env.*
+
+# Python virtualenvs
+.venv/
+venv/
+__pycache__/
+
+# Node
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Java build artifacts (rebuilt in Docker)
+simulator/target/
+*.class
+
+# IDE
+.idea/
+.vscode/
+
+# Docs
+docs/
+README.md
+todo.md
+
+# Docker
+docker-compose.yml

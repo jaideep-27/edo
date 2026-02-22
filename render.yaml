@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: edo-server
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 5001
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false          # set manually in Render dashboard
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: "36500d"
+      - key: CLIENT_URL
+        value: https://edo-a1.vercel.app
+      - key: PYTHON_PATH
+        value: python3
+      - key: CLOUDSIM_JAR_PATH
+        value: /app/simulator/target/simulator.jar
+      - key: DEFAULT_SEED
+        value: "42"
