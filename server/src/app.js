@@ -17,9 +17,19 @@ const app = express();
 
 // ── Security ──────────────────────────────────────────────
 app.use(helmet());
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  process.env.CLIENT_URL,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: (origin, cb) => {
+      // allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      cb(new Error('Not allowed by CORS'));
+    },
     credentials: true,
   })
 );
