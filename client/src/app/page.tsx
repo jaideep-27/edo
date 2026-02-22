@@ -174,7 +174,7 @@ export default function Home() {
     <div className="min-h-screen bg-canvas">
       {/* ── Navbar ──────────────────────────────────────── */}
       <nav className="fixed top-0 left-0 right-0 z-50 glass-strong h-16 flex items-center justify-between px-6 lg:px-12">
-        <Link href="/#hero" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <Link href="/#" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <Cloud className="h-6 w-6 text-neon-cyan" />
           <span className="font-heading font-bold text-lg text-text-primary">
             EDO-Cloud
