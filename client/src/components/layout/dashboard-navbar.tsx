@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
 import { useTheme } from '@/components/theme-provider';
+import Link from 'next/link';
 
 interface DashboardNavbarProps {
   onMenuToggle?: () => void;
@@ -33,12 +34,15 @@ export function DashboardNavbar({ onMenuToggle }: DashboardNavbarProps) {
           <Menu className="h-5 w-5" />
         </button>
 
-        <div className="flex items-center gap-2">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+        >
           <Cloud className="h-6 w-6 text-neon-cyan" />
           <span className="font-heading font-bold text-lg text-text-primary">
             EDO-Cloud
           </span>
-        </div>
+        </Link>
       </div>
 
       {/* Right section */}
