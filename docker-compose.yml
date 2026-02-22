@@ -28,8 +28,10 @@ services:
       JWT_SECRET: ${JWT_SECRET:-9f3Kx7QvL2mP8cZr5YwE0Jt4HnA6uB1DqSgR9oV3FhXUeT2iCk7lWbN8yMZpQa}
       JWT_EXPIRES_IN: 36500d
       PYTHON_PATH: python3
+      CLOUDSIM_JAR_PATH: /opt/simulator/target/simulator.jar
       DEFAULT_SEED: 42
       NODE_ENV: production
+      CLIENT_URL: http://localhost:3000
     volumes:
       - ./optimizer:/opt/optimizer:ro
       - ./simulator/target:/opt/simulator/target:ro
