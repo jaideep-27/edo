@@ -369,7 +369,7 @@ export default function ComparePage() {
                   <RadarChart data={radarData}>
                     <PolarGrid stroke={ct.polarGrid} />
                     <PolarAngleAxis dataKey="metric" tick={{ fill: ct.tick, fontSize: 11 }} />
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: '#555', fontSize: 9 }} />
+                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: ct.tick, fontSize: 9 }} />
                     {results.map((r, i) => {
                       const exp = getExperiment(r.experimentId);
                       return (

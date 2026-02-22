@@ -880,7 +880,7 @@ export default function ExperimentDetailPage() {
                     >
                       <PolarGrid stroke={ct.polarGrid} />
                       <PolarAngleAxis dataKey="metric" tick={{ fill: ct.tick, fontSize: 12 }} />
-                      <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: '#555', fontSize: 10 }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: ct.tick, fontSize: 10 }} />
                       <Radar name="Score" dataKey="value" stroke="#66FCF1" fill="#66FCF1" fillOpacity={0.2} />
                       <Legend wrapperStyle={{ fontSize: 12, color: ct.legendColor }} />
                     </RadarChart>
@@ -967,6 +967,10 @@ export default function ExperimentDetailPage() {
                             <YAxis tick={{ fill: ct.tick, fontSize: 10 }} />
                             <Tooltip
                               contentStyle={ct.tooltipStyle}
+                              labelStyle={{ color: ct.tick }}
+                              itemStyle={{ color: ct.tick }}
+                              formatter={(value: number | undefined) => [value ?? 0, 'Tasks']}
+                              labelFormatter={(label) => String(label)}
                             />
                             <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                               {(() => {
