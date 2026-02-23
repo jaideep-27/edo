@@ -514,6 +514,8 @@ function RunningStatePanel({
                 <YAxis tick={{ fill: ct.tick, fontSize: 9 }} tickLine={false} axisLine={false} width={50} />
                 <Tooltip
                   contentStyle={{ ...ct.tooltipStyle, fontSize: 11 }}
+                  labelStyle={{ color: ct.tick }}
+                  itemStyle={{ color: ct.tick }}
                   formatter={(value: number | undefined) => [value != null ? value.toFixed(4) : '—', 'Fitness']}
                   labelFormatter={(label) => `Iteration ${label}`}
                 />
@@ -1023,6 +1025,8 @@ export default function ExperimentDetailPage() {
                         <Tooltip
                           cursor={{ strokeDasharray: '3 3' }}
                           contentStyle={ct.tooltipStyle}
+                          labelStyle={{ color: ct.tick }}
+                          itemStyle={{ color: ct.tick }}
                           formatter={(value: number | undefined) => value != null ? value.toFixed(3) : '—'}
                         />
                         <Scatter name="Pareto Points" data={result.paretoPoints} fill="#FF2A6D">

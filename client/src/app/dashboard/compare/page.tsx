@@ -400,6 +400,8 @@ export default function ComparePage() {
                     <YAxis tick={{ fill: ct.tick, fontSize: 10 }} />
                     <Tooltip
                       contentStyle={ct.tooltipStyle}
+                      labelStyle={{ color: ct.tick }}
+                      itemStyle={{ color: ct.tick }}
                     />
                     {results.map((r, i) => {
                       const exp = getExperiment(r.experimentId);
@@ -441,6 +443,8 @@ export default function ComparePage() {
                     />
                     <Tooltip
                       contentStyle={ct.tooltipStyle}
+                      labelStyle={{ color: ct.tick }}
+                      itemStyle={{ color: ct.tick }}
                     />
                     {results.map((r, i) => {
                       if (!r.convergenceData?.length) return null;
