@@ -384,7 +384,7 @@ export default function Home() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {STEPS.map((step, i) => (
-              <div key={step.step} className="relative">
+              <div key={step.step} className="relative h-full">
                 <div className="glass rounded-2xl p-6 h-full">
                   <div className="text-4xl font-display font-extrabold text-neon-cyan/20 mb-3">
                     {step.step}
@@ -397,7 +397,7 @@ export default function Home() {
                   </p>
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div className="hidden lg:flex absolute top-1/2 -right-3 -translate-y-1/2 z-10">
+                  <div className="hidden lg:flex items-center justify-center absolute top-0 bottom-0 -right-3 z-10">
                     <ChevronRight className="h-5 w-5 text-neon-cyan/30" />
                   </div>
                 )}
